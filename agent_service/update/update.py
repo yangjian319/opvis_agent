@@ -244,16 +244,14 @@ def updatePlugin():
 def savePlugin():
   file_name = url.split("/")[-1]
   if (file_name not in dirs):
+    urllib.urlretrieve(url, os.path.join(plugin_dir, file_name))  # 直接覆盖？
+    html = urllib.urlopen(url)
+    html1 = html.read()
+    code = html.code
+    logging.info(code)
+    with open(os.path.join(plugin_dir, file_name), "wb") as fp:
+      fp.write(html1)
     try:
-      urllib.urlretrieve(url, os.path.join(plugin_dir, file_name))  # 直接覆盖？
-      html = urllib.urlopen(url)
-      html1 = html.read()
-      code = html.code
-      try:
-        with open(os.path.join(plugin_dir, file_name), "wb") as fp:
-          fp.write(html1)
-      except Exception, e:
-        logging.info(e)
       if code == 200:
         logging.info("Saveplugin, plugin not exists, download plugin successfully: " + str(file_name))
         req_data = {}
