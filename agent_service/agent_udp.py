@@ -14,7 +14,7 @@ import urllib2
 import logging
 import commands
 import threading
-from agent_service.utils import allip
+from utils import allip
 from logging.handlers import TimedRotatingFileHandler
 
 
