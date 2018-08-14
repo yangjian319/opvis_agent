@@ -278,6 +278,21 @@ def savePlugin():
         logging.info("Interface feedback, successfully: " + str(data))
       except Exception as e:
         logging.info("Saveplugin error: " + str(e))
+  else:
+    try:
+      logging.info("Plugin exists: " + str(file_name))
+      req_data = {}
+      req_data['hostId'] = data2.get('hostid')
+      req_data['plugId'] = data2.get('plugid')
+      req_data['type'] = '41'
+      req_data['cause'] = 'success'
+      req_data = urllib.urlencode(req_data)
+      req = urllib2.Request(url=requrl, data=req_data)
+      res = urllib2.urlopen(req)
+      data = res.read()
+      logging.info("Interface feedback successfully: " + str(data))
+    except Exception as e:
+      logging.info("Save plugin error: " + str(e))
 
 def deletePlugin():
   for d in dirs:
