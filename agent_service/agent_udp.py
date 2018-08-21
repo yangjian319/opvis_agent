@@ -202,7 +202,7 @@ except Exception as e:
 # Get data from proxy
 def callplugin():
   cmd = "python /home/opvis/opvis_agent/agent_service/update/update.py" + " " + data2
-  os.system(cmd)
+  ret = os.system(cmd)
 while True:
   data, addr = udpsocket.recvfrom(2018)
   time_second = time.time()
