@@ -337,7 +337,7 @@ def hostInformation():
           hostRelationship = json.dumps(hostRelationship)
           header_dict = {"Content-Type": "application/json;charset=UTF-8"}
           req = urllib2.Request(url=url_new, data=hostRelationship, headers=header_dict)
-          res = urllib2.urlopen(req)
+          res = urllib2.urlopen(req, timeout=65)
           logging.info("Interface feedback upload hostinformation successfully: " + str(res.read()))
         except Exception as e:
           logging.info("Interface feedback upload hostinformation failed:" + str(e))
@@ -356,7 +356,7 @@ def hostInformation():
         hostRelationship = json.dumps(hostRelationship)
         header_dict = {"Content-Type": "application/json;charset=UTF-8"}
         req = urllib2.Request(url=url_new, data=hostRelationship, headers=header_dict)
-        res = urllib2.urlopen(req)
+        res = urllib2.urlopen(req, timeout=65)
         logging.info("Interface feedback upload hostinformation successfully: " + str(res.read()))
       except Exception as e:
         logging.info("Interface feedback upload hostinformation failed: " + str(e))
