@@ -51,6 +51,7 @@ for ip in iplist:
 jifangip = currentip
 plugin_dir = "/home/opvis/opvis_agent/agent_service/plugin/"
 
+
 try:
   address = ("0.0.0.0", 9997)
   udpsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -201,11 +202,35 @@ except Exception as e:
 
 # Get data from proxy
 def callplugin():
-  cmd = "python /home/opvis/opvis_agent/agent_service/update/update.py" + " " + data2
-  ret = os.system(cmd)
+  dirs = os.listdir(plugin_dir)
+  plugin_dir1 = os.path.join(plugin_dir, plugin_name)
+  if status == 6:
+    if (plugin_name in dirs):
+      try:
+        temp = os.popen('sudo python %s' % plugin_dir1).readlines()
+        logging.info("Plugin exists and execute successfully." + str(plugin_name))
+        url_new = "http://" + tmp_url.split("/")[2] + "/umsproxy/hostExtract/uploadHostInformation"
+        url_new = str(url_new)
+        hostRelationship = {}
+        hostRelationship["tableName"] = dic.get("tableName")
+        hostRelationship["hostRelationship"] = temp
+        hostRelationship = json.dumps(hostRelationship)
+        header_dict = {"Content-Type": "application/json;charset=UTF-8"}
+        req = urllib2.Request(url=url_new, data=hostRelationship, headers=header_dict)
+        res = urllib2.urlopen(req, timeout=70)
+        logging.info("Interface feedback upload hostinformation successfully: " + str(res.read()))
+      except Exception as e:
+        logging.info("Interface feedback upload hostinformation failed: " + str(e))
+    else:
+      logging.info("Plugin is not install: topologic.")
+  else:
+    cmd = "python /home/opvis/opvis_agent/agent_service/update/update.py" + " " + data2
+    ret = os.system(cmd)
+
 while True:
   data, addr = udpsocket.recvfrom(2018)
   time_second = time.time()
+  logging.info(addr)
   logging.info("Time of data received: " + str(time_second))
   logging.info("Receive data from proxy: " + str(data))
   data1 = "{0}".format(data)
@@ -214,6 +239,10 @@ while True:
   data2 = lstr + data1 + rstr
   dic = json.loads(data)
   logging.info("Change data to dict: " + str(dic))
+  if addr[0] != "127.0.0.1":
+    status = dic["pluginfo"]["status"]
+    tmp_url = dic["pluginfo"]["url"]
+    plugin_name = tmp_url.split("/")[-1]
   name = dic.get("name")
   if name == "updateAgent":
     break
