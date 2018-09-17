@@ -1,6 +1,7 @@
 #!/bin/bash
-date=`date +%Y%m%d`
-mv /home/opvis/opvis_agent/agent_service/agent_udp.py /home/opvis/opvis_agent/agent_service/temp/agent_udp.py.$date
-cp /home/opvis/opvis_agent/agent_service/temp/agent_udp.py /home/opvis/opvis_agent/agent_service/
+time=`date +%Y%m%d%H%M%S`
 ps aux|grep agent_udp.py|grep -v grep|awk '{print $2}'|xargs kill -9
+rm -rf  /home/opvis/opvis_agent
+tar zxf /home/opvis/opvis_agent.tar.gz -C /home/opvis/
+mv /home/opvis/opvis_agent.tar.gz /home/opvis/opvis_agent.tar.gz.$time
 python /home/opvis/opvis_agent/agent_service/agent_udp.py
