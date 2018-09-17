@@ -312,25 +312,6 @@ def deletePlugin():
       except Exception as e:
         logging.info("Deleteplugin error: " + str(e))
 
-def hostInformation():
-  if (file_name in dirs):
-    try:
-      temp = os.popen('sudo python %s' % plugin_dir1).readlines()
-      logging.info("Plugin exists and execute successfully." + str(file_name))
-      url_new = "http://" + tmp_url.split("/")[2] + "/umsproxy/hostExtract/uploadHostInformation"
-      url_new = str(url_new)
-      hostRelationship = {}
-      hostRelationship["tableName"] = data2.get("tableName")
-      hostRelationship["hostRelationship"] = temp
-      hostRelationship = json.dumps(hostRelationship)
-      header_dict = {"Content-Type": "application/json;charset=UTF-8"}
-      req = urllib2.Request(url=url_new, data=hostRelationship, headers=header_dict)
-      res = urllib2.urlopen(req, timeout=70)
-      logging.info("Interface feedback upload hostinformation successfully: " + str(res.read()))
-    except Exception as e:
-      logging.info("Interface feedback upload hostinformation failed: " + str(e))
-  else:
-    logging.info("Plugin is not install: topologic.")
 
 
 logging.info("Received status: " + str(status))
@@ -361,10 +342,5 @@ elif status == 4 and url:
 elif status == 5 and url:
   try:
     deletePlugin()
-  except Exception as e:
-    logging.info(e)
-elif status == 6 and url:
-  try:
-    hostInformation()
   except Exception as e:
     logging.info(e)
