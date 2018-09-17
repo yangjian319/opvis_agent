@@ -46,7 +46,12 @@ except OSError,error:
   logging.info("opvis_agent update second fork failed!")
   sys.exit(1)
 
-urllib.urlretrieve(url, "/home/opvis/opvis_agent/agent_service/temp/agent_udp.py")
-logging.info("Download successfully!")
-os.system("sh /home/opvis/opvis_agent/agent_service/update/agentupdate.sh")
-logging.info("Update agent_udp.py successfully!")
+
+urllib.urlretrieve(url, "/home/opvis/opvis_agent.tar.gz")
+logging.info("Download opvis_agent.tar.gz successfully!")
+if os.path.exists("/home/opvis/opvis_agent.tar.gz"):
+  os.system("sh /home/opvis/opvis_agent/agent_service/update/agentupdate.sh")
+  logging.info("Update agent_udp successfully!")
+else:
+  logging.info("Download opvis_agent.tar.gz failed!")
+
