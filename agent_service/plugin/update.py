@@ -3,6 +3,7 @@
 # @Time  : 2018/7/11 14:14
 # @Author: yangjian
 # @File  : update.py
+# 对插件进行增加、更新、删除操作
 
 import os
 import sys
