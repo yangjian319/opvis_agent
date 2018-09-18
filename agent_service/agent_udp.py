@@ -3,6 +3,8 @@
 # @Time  : 2018/7/4 9:25
 # @Author: yangjian
 # @File  : agent_udp.py
+# Agent程序主文件，包括判断本机属于哪个机房，上传本机authorized_keys文件的md5值，上传本机IP以及已安装插件，主机关系上传
+# 接收指令调用update.py对插件进行管理，以及调用agentupdate.py对agent整个程序进行升级
 
 import os
 import sys
