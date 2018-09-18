@@ -270,7 +270,7 @@ def callplugin():
     else:
       logging.info("Plugin is not install: topologic.")
   else:
-    cmd = "python /home/opvis/opvis_agent/agent_service/update/update.py" + " " + data2
+    cmd = "python /home/opvis/opvis_agent/agent_service/plugin/update.py" + " " + data2
     ret = os.system(cmd)
 
 # Get data from proxy
