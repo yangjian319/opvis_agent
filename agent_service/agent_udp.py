@@ -17,10 +17,10 @@ import getopt
 import socket
 import urllib
 import urllib2
+import MySQLdb
 import logging
 import commands
 import threading
-#from utils import allip
 from logging.handlers import TimedRotatingFileHandler
 
 
@@ -37,6 +37,39 @@ formatter = logging.Formatter(format_str, datefmt)
 fh.setFormatter(formatter)
 logger.addHandler(fh)
 
+##################################################################################
+allitems = "/home/opvis/opvis_agent/agent_service/pm/allitems"
+allcycle_a = "/home/opvis/opvis_agent/agent_service/pm/allcycle_a"
+allcycle_b = "/home/opvis/opvis_agent/agent_service/pm/allcycle_b"
+allcycle_c = "/home/opvis/opvis_agent/agent_service/pm/allcycle_c"
+
+crontab_opvis_a = "/home/opvis/opvis_agent/agent_service/cron/crontab_opvis_a"
+crontab_opvis_b = "/home/opvis/opvis_agent/agent_service/cron/crontab_opvis_b"
+crontab_opvis_c = "/home/opvis/opvis_agent/agent_service/cron/crontab_opvis_c"
+
+pmonitorLog = "/home/opvis/opvis_agent/agent_service/log/pmonitor.log"
+pmonitorDir = "/home/opvis/opvis_agent/agent_service/plugin/pmonitor.py"
+
+# 看线上是用eth0还是eth1
+localip = os.popen("ifconfig eth0|grep 'inet'|awk 'NR==1 {print $2}'").read().replace("\n", "")
+
+# 创建数据库连接，需要改成oracle的
+def connect_mysql():
+  db_config = {
+    "host": "47.106.106.220",
+    "port": 3306,
+    "user": "agent",
+    "passwd": "123456",
+    "db": "test",
+    "charset": "utf8"
+  }
+  try:
+    conn = MySQLdb.connect(**db_config)
+  except Exception as e:
+    raise e
+  return conn
+##################################################################################
+
 iplist = ["172.30.130.137:18382", "172.30.130.126:18382", "10.124.5.163:18382", "10.144.2.248:18382",
           "10.123.30.177:18382", "172.30.194.121:18382", "172.16.5.20:18382", "10.181.1.0:18382"]
 for ip in iplist:
@@ -52,7 +85,6 @@ for ip in iplist:
     logging.info("Determine which area the machine belongs to error: " + str(e))
 jifangip = currentip
 plugin_dir = "/home/opvis/opvis_agent/agent_service/plugin/"
-
 
 try:
   address = ("0.0.0.0", 9997)
@@ -97,7 +129,6 @@ try:
 except Exception as e:
   logging.info("Upload the native MD5 value to the proxy error: " + str(e))
 
-
 def file_name(plugin_dir):
   list = []
   for root, dirs, files in os.walk(plugin_dir):
@@ -105,7 +136,6 @@ def file_name(plugin_dir):
       if os.path.splitext(file)[1] == '.py':
         list.append(file)
   return list
-
 
 # get all ips of the server
 def get_all_ips():
@@ -127,6 +157,7 @@ def read_ip(addr):
          str(int(addr[4:6],16)) + '.' + \
          str(int(addr[2:4],16)) + '.' + \
          str(int(addr[0:2],16))
+
 # format ip to hex
 def re_format_ip(addr):
   ret = ''
@@ -147,9 +178,6 @@ def re_format_ip(addr):
   else:
     ret = ret + str(hex(ord(addr[0])))[2:]
   return ret
-
-
-
 
 # Upload installed plugins and get upgrade agent informations
 def sendFileName():
@@ -213,7 +241,6 @@ def reportheart():
       else:
         logging.info("agent.lock not found!")
         sys.exit(1)
-
       ips = []
       ip = {}
       allips = get_all_ips()
@@ -273,6 +300,118 @@ def callplugin():
     cmd = "python /home/opvis/opvis_agent/agent_service/plugin/update.py" + " " + data2
     ret = os.system(cmd)
 
+########################################################################################################################
+def getAllprocess():
+  sql = 'select * from monitor where ip="%s";'%localip
+  print(sql)
+  conn = connect_mysql()
+  cursor = conn.cursor()
+  cursor.execute(sql)
+  allinfo = cursor.fetchall()
+  print(allinfo)
+  for row in allinfo:
+    id = row[0]
+    ip  = row[1]
+    name = row[2]
+    regr = row[3]
+    count = row[4]
+    cycle = row[5]
+    result = "id=%d,ip=%s,name=%s,regr=%s,count=%d,cycle=%d" %(id,ip,name,regr,count,cycle)
+    print(result)
+    with open(allitems,"a") as fd:
+      fd.write(result)
+      fd.write("\n")
+  conn.commit()
+  cursor.close()
+  conn.close()
+
+def get_Old_cycle():
+  sql = 'select cycle from monitor where ip="%s" group by cycle;' %localip
+  print(sql)
+  conn = connect_mysql()
+  cursor = conn.cursor()
+  cursor.execute(sql)
+  allinfo = cursor.fetchall()
+  print(allinfo)
+  for row in allinfo:
+    row = str(row[0])
+    print(row)
+    with open(allcycle_a, "a") as fd:
+      fd.write(row)
+      fd.write("\n")
+  conn.commit()
+  cursor.close()
+  conn.close()
+
+def get_New_cycle():
+  sql = 'select cycle from monitor where ip="%s" group by cycle;' % localip
+  print(sql)
+  conn = connect_mysql()
+  cursor = conn.cursor()
+  cursor.execute(sql)
+  allinfo = cursor.fetchall()
+  print(allinfo)
+  for row in allinfo:
+    row = str(row[0])
+    print(row)
+    with open(allcycle_b, "a") as fd:
+      fd.write(row)
+      fd.write("\n")
+  conn.commit()
+  cursor.close()
+  conn.close()
+
+def gen_Cron_first():
+  os.system("crontab -l >> {0}".format(crontab_opvis_a))
+  p = os.popen("crontab -l|grep pmonitor|wc -l").readline()[0]
+  if int(p) < 1:
+    with open(allcycle_a, "r") as fd:
+      lines = fd.readlines()
+      for i in lines:
+        cron_cmd = "*" + "/" + str(1) + " \* \* \* \* python " + pmonitorDir + " " + "cycle=" + str(i) + " \>\> " + " " + pmonitorLog
+        os.system("echo {0} >> {1}".format(cron_cmd, crontab_opvis_b))
+      os.system("crontab {0}".format(crontab_opvis_b))
+
+def gen_Cron_later():
+  get_New_cycle()
+  stra = []
+  strb = []
+  strc = []
+  fa = open(allcycle_a, 'r')
+  fb = open(allcycle_b, 'r')
+  fc = open(allcycle_c, 'w')
+  for line in fa.readlines():
+    stra.append(line.replace("\n", ''))
+  for line in fb.readlines():
+    strb.append(line.replace("\n", ''))
+  for j in strb:
+    if j not in stra:
+      strc.append(j)
+  for i in strc:
+    fc.write(i + "\n")
+  fa.close()
+  fb.close()
+  fc.close()
+  os.system("crontab -l|grep pmonitor.py >> {0}".format(crontab_opvis_c))
+  with open(allcycle_c, "r") as fd:
+    lines = fd.readlines()
+    for i in lines:
+      cron_cmd = "*" + "/" + str(1) + " \* \* \* \* python " + pmonitorDir + " " + "cycle=" + str(i) + " \>\> " + " " + pmonitorLog
+      os.system("echo {0} >> {1}".format(cron_cmd, crontab_opvis_c))
+    os.system("crontab {0}".format(crontab_opvis_c))
+os.remove(allcycle_a)
+os.rename(allcycle_b, allcycle_a)
+
+# 获取所有的监控进程信息
+getAllprocess()
+# agent启动的时候获取周期信息cycle
+get_Old_cycle()
+# agent启动的时候生成定时任务
+gen_Cron_first()
+# 有新监控项的时候生成定时任务
+# gen_Cron_later()
+########################################################################################################################
+
 # Get data from proxy
 while True:
   data, addr = udpsocket.recvfrom(2018)
@@ -291,6 +430,13 @@ while True:
     tmp_url = dic["pluginfo"]["url"]
     plugin_name = tmp_url.split("/")[-1]
   name = dic.get("name")
+########################################################################################################################
+# 处理读数据库取数据存数据，这里需要再确认一下，对方传过来的字段是啥
+  pstatus = dic["pstatus"]
+  pip = dic[ip]
+  if pstatus == 7 and pip == localip: # 这里的status名字需要改成其他的，如pstatus，因为之前和现在收到的消息格式是不一样的，取法也是不一样的。
+    gen_Cron_later()
+########################################################################################################################
   if name == "updateAgent":
     break
   else:
