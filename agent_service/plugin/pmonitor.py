@@ -7,6 +7,7 @@
 import os
 import sys
 import json
+import urllib
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
@@ -46,8 +47,16 @@ while line:
     if int(count_new) < int(trigger_value):
       # 记录日志
       content = process_name + " " + "老的进程数是：" + trigger_value + " 新的进程数是：" + count_new
+      content = urllib.urlencode(content)
       logging.info(content)
-      pass
+      with open("/home/opvis/opvis_agent/agent_service/agent.lock", "r") as fd:
+        proxy_ip = fd.readline()
+      get_process_url = "http://" + proxy_ip + ":9995" + "/getinfo/"
+      req = urllib2.Request(url=get_process_url, data=content)
+      res = urllib2.urlopen(req)
+      get_data = res.read()
+      logging.info("process monitor sucess")
+
       # alarmprocess接口，上报错误信息给接口，包括程name，原有进程数count_old，现有进程数count_new?
     line = fd.readline()
 fd.close()
