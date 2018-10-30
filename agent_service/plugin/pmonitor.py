@@ -9,6 +9,7 @@ import sys
 import json
 import urllib
 import logging
+import datetime
 from logging.handlers import TimedRotatingFileHandler
 
 
@@ -28,6 +29,7 @@ if not os.path.exists("/data/py/test"):
 
 arg_cycle = sys.argv[1]
 allitems = "/home/opvis/opvis_agent/agent_service/pm/allitems"
+localip = os.popen("ifconfig eth0|grep 'inet'|awk 'NR==1 {print $2}'").read().replace("\n", "")
 
 fd = open(allitems,"r")
 line = json.loads(fd.readline())
@@ -44,19 +46,24 @@ while line:
     need_monitor.append(i.replace("\n",""))
   for p in need_monitor and p == key_word:
     count_new = os.popen("ps aux|grep %s|grep -v grep|wc -l" %p).readline()[0]
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     if int(count_new) < int(trigger_value):
       # 记录日志
       content = process_name + " " + "老的进程数是：" + trigger_value + " 新的进程数是：" + count_new
-      content = urllib.urlencode(content)
       logging.info(content)
+      upload_data = {}
+      upload_data["process_name"] = process_name
+      upload_data["old_count"] = trigger_value
+      upload_data["new_count"] = count_new
+      upload_data["current_time"] = current_time
+      upload_data["localip"] = localip
+      urllib.urlencode(upload_data)
       with open("/home/opvis/opvis_agent/agent_service/agent.lock", "r") as fd:
         proxy_ip = fd.readline()
       get_process_url = "http://" + proxy_ip + ":9995" + "/getinfo/"
-      req = urllib2.Request(url=get_process_url, data=content)
+      req = urllib2.Request(url=get_process_url, data=upload_data)
       res = urllib2.urlopen(req)
       get_data = res.read()
       logging.info("process monitor sucess")
-
-      # alarmprocess接口，上报错误信息给接口，包括程name，原有进程数count_old，现有进程数count_new?
     line = fd.readline()
 fd.close()
