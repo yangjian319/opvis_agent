@@ -52,22 +52,6 @@ pmonitorDir = "/home/opvis/opvis_agent/agent_service/plugin/pmonitor.py"
 
 # 看线上是用eth0还是eth1
 localip = os.popen("ifconfig eth0|grep 'inet'|awk 'NR==1 {print $2}'").read().replace("\n", "")
-
-# 创建数据库连接，需要改成oracle的
-def connect_mysql():
-  db_config = {
-    "host": "47.106.106.220",
-    "port": 3306,
-    "user": "agent",
-    "passwd": "123456",
-    "db": "test",
-    "charset": "utf8"
-  }
-  try:
-    conn = MySQLdb.connect(**db_config)
-  except Exception as e:
-    raise e
-  return conn
 ##################################################################################
 
 iplist = ["172.30.130.137:18382", "172.30.130.126:18382", "10.124.5.163:18382", "10.144.2.248:18382",
@@ -301,65 +285,52 @@ def callplugin():
     ret = os.system(cmd)
 
 ########################################################################################################################
+# 获得本机房proxy的ip地址用于url拼接
+with open("/home/opvis/opvis_agent/agent_service/agent.lock","r") as fd:
+  proxy_ip = fd.readline()
+
+# 查询数据库函数
 def getAllprocess():
-  sql = 'select * from monitor where ip="%s";'%localip
-  print(sql)
-  conn = connect_mysql()
-  cursor = conn.cursor()
-  cursor.execute(sql)
-  allinfo = cursor.fetchall()
-  print(allinfo)
-  for row in allinfo:
-    id = row[0]
-    ip  = row[1]
-    name = row[2]
-    regr = row[3]
-    count = row[4]
-    cycle = row[5]
-    result = "id=%d,ip=%s,name=%s,regr=%s,count=%d,cycle=%d" %(id,ip,name,regr,count,cycle)
-    print(result)
-    with open(allitems,"a") as fd:
-      fd.write(result)
-      fd.write("\n")
-  conn.commit()
-  cursor.close()
-  conn.close()
+  get_process_url = "http://" + proxy_ip + ":9995" + "/selectinfo/"  # 这里应该也是需要拼接，ip为读取写入本地的ip文件
+  ips = []
+  ip = {}
+  allips = get_all_ips()
+  for item in allips:
+    hip = re_format_ip(item)
+    out = read_ip(hip)
+    out.replace("\n", "")
+    out.replace("\r", "")
+    if out == "127.0.0.1":
+      continue
+    ips.append(out)
+    ip = ",".join(ips)
+  logging.info(ip)
+  get_process_url += ip # 这下面的data就无意义
+  # ip = urllib.urlencode(ip)
+  req = urllib2.Request(url=get_process_url, data=ip)
+  res = urllib2.urlopen(req)
+  get_data = res.read()
+  return get_data
 
 def get_Old_cycle():
-  sql = 'select cycle from monitor where ip="%s" group by cycle;' %localip
-  print(sql)
-  conn = connect_mysql()
-  cursor = conn.cursor()
-  cursor.execute(sql)
-  allinfo = cursor.fetchall()
-  print(allinfo)
-  for row in allinfo:
-    row = str(row[0])
-    print(row)
-    with open(allcycle_a, "a") as fd:
-      fd.write(row)
+  get_data = getAllprocess()
+  for i in range(get_data.__len__()):
+    with open("all_items", "a") as fd:
+      fd.write(json.dumps(get_data[i]))
       fd.write("\n")
-  conn.commit()
-  cursor.close()
-  conn.close()
+  for i in range(get_data.__len__()):
+    with open("allcycle_a", "a") as fd:
+      trigger_cycle_value = "trigger_cycle_value" + str(get_data[i]["trigger_cycle_value"])
+      fd.write(trigger_cycle_value)  # str
+      fd.write("\n")
 
 def get_New_cycle():
-  sql = 'select cycle from monitor where ip="%s" group by cycle;' % localip
-  print(sql)
-  conn = connect_mysql()
-  cursor = conn.cursor()
-  cursor.execute(sql)
-  allinfo = cursor.fetchall()
-  print(allinfo)
-  for row in allinfo:
-    row = str(row[0])
-    print(row)
-    with open(allcycle_b, "a") as fd:
-      fd.write(row)
+  get_data = getAllprocess()
+  for i in range(get_data.__len__()):
+    with open("allcycle_b", "a") as fd:
+      trigger_cycle_value = "trigger_cycle_value" + str(get_data[i]["trigger_cycle_value"])
+      fd.write(trigger_cycle_value)  # str
       fd.write("\n")
-  conn.commit()
-  cursor.close()
-  conn.close()
 
 def gen_Cron_first():
   os.system("crontab -l >> {0}".format(crontab_opvis_a))
@@ -368,7 +339,7 @@ def gen_Cron_first():
     with open(allcycle_a, "r") as fd:
       lines = fd.readlines()
       for i in lines:
-        cron_cmd = "*" + "/" + str(1) + " \* \* \* \* python " + pmonitorDir + " " + "cycle=" + str(i) + " \>\> " + " " + pmonitorLog
+        cron_cmd = "*" + "/" + str(1) + " \* \* \* \* python " + pmonitorDir + " " + "trigger_cycle_value=" + str(i) + " \>\> " + " " + pmonitorLog
         os.system("echo {0} >> {1}".format(cron_cmd, crontab_opvis_b))
       os.system("crontab {0}".format(crontab_opvis_b))
 
@@ -396,20 +367,15 @@ def gen_Cron_later():
   with open(allcycle_c, "r") as fd:
     lines = fd.readlines()
     for i in lines:
-      cron_cmd = "*" + "/" + str(1) + " \* \* \* \* python " + pmonitorDir + " " + "cycle=" + str(i) + " \>\> " + " " + pmonitorLog
+      cron_cmd = "*" + "/" + str(1) + " \* \* \* \* python " + pmonitorDir + " " + "trigger_cycle_value=" + str(i) + " \>\> " + " " + pmonitorLog
       os.system("echo {0} >> {1}".format(cron_cmd, crontab_opvis_c))
     os.system("crontab {0}".format(crontab_opvis_c))
 os.remove(allcycle_a)
 os.rename(allcycle_b, allcycle_a)
 
-# 获取所有的监控进程信息
-getAllprocess()
-# agent启动的时候获取周期信息cycle
 get_Old_cycle()
-# agent启动的时候生成定时任务
 gen_Cron_first()
-# 有新监控项的时候生成定时任务
-# gen_Cron_later()
+gen_Cron_later()
 ########################################################################################################################
 
 # Get data from proxy
@@ -431,10 +397,9 @@ while True:
     plugin_name = tmp_url.split("/")[-1]
   name = dic.get("name")
 ########################################################################################################################
-# 处理读数据库取数据存数据，这里需要再确认一下，对方传过来的字段是啥
   pstatus = dic["pstatus"]
-  pip = dic[ip]
-  if pstatus == 7 and pip == localip: # 这里的status名字需要改成其他的，如pstatus，因为之前和现在收到的消息格式是不一样的，取法也是不一样的。
+  processip = dic[ip]
+  if pstatus == 7 and processip == localip:
     gen_Cron_later()
 ########################################################################################################################
   if name == "updateAgent":
