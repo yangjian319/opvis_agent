@@ -6,6 +6,7 @@
 
 import os
 import sys
+import json
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
@@ -23,28 +24,28 @@ logger.addHandler(fh)
 
 if not os.path.exists("/data/py/test"):
   os.mkdir("/home/opvis/opvis_agent/agent_service/pm")
-#arg_cycle = int(sys.argv[1].split("=")[1])  # arg_cycle是定时任务中传到本脚本的参数，这里要把cycle=1拆开后取数字
+
 arg_cycle = sys.argv[1]
-allitems = "/home/opvis/opvis_agent/agent_service/pm/allitems" # 首次取出的所有监控项信息
+allitems = "/home/opvis/opvis_agent/agent_service/pm/allitems"
 
 fd = open(allitems,"r")
-line = fd.readline()
+line = json.loads(fd.readline())
 while line:
-  name = line.split(",")[2].split("=")[1]
-  regr = line.split(",")[3].split("=")[1]
-  count_old = line.split(",")[4].split("=")[1]
-  cycle = line.split(",")[5].split("=")[1]
-  # 根据定时任务传入的周期数cycle去找出当前定时任务需要去查询哪些程序名需要去查询它们的进程将程序的特征值存入列表
+  key_word = line.get("key_word")
+  IP = line.get("IP")
+  process_name = line.get("process_name")
+  trigger_cycle_value = line.get("trigger_cycle_value")
+  trigger_value = line.get("trigger_value")
   need_monitor = []
   cmd = "grep " +  arg_cycle + " " + allitems + '|awk -F \',\' \'{print $2}\'|awk -F \'=\' \'{print $2}\''
   process = os.popen(cmd).readlines()
   for i in process:
     need_monitor.append(i.replace("\n",""))
-  for p in need_monitor and p == regr:
+  for p in need_monitor and p == key_word:
     count_new = os.popen("ps aux|grep %s|grep -v grep|wc -l" %p).readline()[0]
-    if int(count_new) < int(count_old):
+    if int(count_new) < int(trigger_value):
       # 记录日志
-      content = name + " " + "老的进程数是：" + count_old + " 新的进程数是：" + count_new
+      content = process_name + " " + "老的进程数是：" + trigger_value + " 新的进程数是：" + count_new
       logging.info(content)
       pass
       # alarmprocess接口，上报错误信息给接口，包括程name，原有进程数count_old，现有进程数count_new?
