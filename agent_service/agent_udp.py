@@ -17,7 +17,6 @@ import getopt
 import socket
 import urllib
 import urllib2
-import MySQLdb
 import logging
 import commands
 import threading
@@ -25,7 +24,6 @@ from logging.handlers import TimedRotatingFileHandler
 
 
 VERSION = 1
-
 # log
 LOG_FILE = "/home/opvis/opvis_agent/agent_service/log/agent.log"
 logger = logging.getLogger()
@@ -38,7 +36,8 @@ fh.setFormatter(formatter)
 logger.addHandler(fh)
 
 ##################################################################################
-os.mkdirs("/home/opvis/opvis_agent/agent_service/pm")
+if not os.path.exists("/home/opvis/opvis_agent/agent_service/pm"):
+  os.makedirs("/home/opvis/opvis_agent/agent_service/pm")
 allitems = "/home/opvis/opvis_agent/agent_service/pm/allitems"
 allcycle_a = "/home/opvis/opvis_agent/agent_service/pm/allcycle_a"
 allcycle_b = "/home/opvis/opvis_agent/agent_service/pm/allcycle_b"
@@ -164,6 +163,102 @@ def re_format_ip(addr):
     ret = ret + str(hex(ord(addr[0])))[2:]
   return ret
 
+########################################################################################################################
+# 获得本机房proxy的ip地址用于url拼接
+with open("/home/opvis/opvis_agent/agent_service/agent.lock","r") as fd:
+  proxy_ip = fd.readline()
+
+# 查询数据库函数
+def getAllprocess():
+  get_process_url = "http://" + proxy_ip + ":9995" + "/selectinfo/"  # 这里应该也是需要拼接，ip为读取写入本地的ip文件
+  ips = []
+  ip = {}
+  allips = get_all_ips()
+  for item in allips:
+    hip = re_format_ip(item)
+    out = read_ip(hip)
+    out.replace("\n", "")
+    out.replace("\r", "")
+    if out == "127.0.0.1":
+      continue
+    ips.append(out)
+    ip = ",".join(ips)
+  logging.info(ip)
+  get_process_url += ip # 这下面的data就无意义
+  # ip = urllib.urlencode(ip)
+  req = urllib2.Request(url=get_process_url, data=ip)
+  res = urllib2.urlopen(req)
+  get_data = res.read()
+  return get_data
+
+def get_Old_cycle():
+  print("开始。。。")
+  get_data = getAllprocess()
+  print("结束。。。")
+  for i in range(get_data.__len__()):
+    with open("all_items", "a") as fd:
+      fd.write(json.dumps(get_data[i]))
+      fd.write("\n")
+  for i in range(get_data.__len__()):
+    with open("allcycle_a", "a") as fd:
+      trigger_cycle_value = "trigger_cycle_value" + str(get_data[i]["trigger_cycle_value"])
+      fd.write(trigger_cycle_value)  # str
+      fd.write("\n")
+
+def get_New_cycle():
+  get_data = getAllprocess()
+  for i in range(get_data.__len__()):
+    with open("allcycle_b", "a") as fd:
+      trigger_cycle_value = "trigger_cycle_value" + str(get_data[i]["trigger_cycle_value"])
+      fd.write(trigger_cycle_value)  # str
+      fd.write("\n")
+
+def gen_Cron_first():
+  os.system("crontab -l >> {0}".format(crontab_opvis_a))
+  p = os.popen("crontab -l|grep pmonitor|wc -l").readline()[0]
+  if int(p) < 1:
+    with open(allcycle_a, "r") as fd:
+      lines = fd.readlines()
+      for i in lines:
+        cron_cmd = "*" + "/" + str(1) + " \* \* \* \* python " + pmonitorDir + " " + "trigger_cycle_value=" + str(i) + " \>\> " + " " + pmonitorLog
+        os.system("echo {0} >> {1}".format(cron_cmd, crontab_opvis_b))
+      os.system("crontab {0}".format(crontab_opvis_b))
+
+def gen_Cron_later():
+  get_New_cycle()
+  stra = []
+  strb = []
+  strc = []
+  fa = open(allcycle_a, 'r')
+  fb = open(allcycle_b, 'r')
+  fc = open(allcycle_c, 'w')
+  for line in fa.readlines():
+    stra.append(line.replace("\n", ''))
+  for line in fb.readlines():
+    strb.append(line.replace("\n", ''))
+  for j in strb:
+    if j not in stra:
+      strc.append(j)
+  for i in strc:
+    fc.write(i + "\n")
+  fa.close()
+  fb.close()
+  fc.close()
+  os.system("crontab -l|grep pmonitor.py >> {0}".format(crontab_opvis_c))
+  with open(allcycle_c, "r") as fd:
+    lines = fd.readlines()
+    for i in lines:
+      cron_cmd = "*" + "/" + str(1) + " \* \* \* \* python " + pmonitorDir + " " + "trigger_cycle_value=" + str(i) + " \>\> " + " " + pmonitorLog
+      os.system("echo {0} >> {1}".format(cron_cmd, crontab_opvis_c))
+    os.system("crontab {0}".format(crontab_opvis_c))
+os.remove(allcycle_a)
+os.rename(allcycle_b, allcycle_a)
+
+get_Old_cycle()
+gen_Cron_first()
+gen_Cron_later()
+########################################################################################################################
+
 # Upload installed plugins and get upgrade agent informations
 def sendFileName():
   try:
@@ -286,102 +381,6 @@ def callplugin():
   else:
     cmd = "python /home/opvis/opvis_agent/agent_service/plugin/update.py" + " " + data2
     ret = os.system(cmd)
-
-########################################################################################################################
-# 获得本机房proxy的ip地址用于url拼接
-with open("/home/opvis/opvis_agent/agent_service/agent.lock","r") as fd:
-  proxy_ip = fd.readline()
-
-# 查询数据库函数
-def getAllprocess():
-  get_process_url = "http://" + proxy_ip + ":9995" + "/selectinfo/"  # 这里应该也是需要拼接，ip为读取写入本地的ip文件
-  ips = []
-  ip = {}
-  allips = get_all_ips()
-  for item in allips:
-    hip = re_format_ip(item)
-    out = read_ip(hip)
-    out.replace("\n", "")
-    out.replace("\r", "")
-    if out == "127.0.0.1":
-      continue
-    ips.append(out)
-    ip = ",".join(ips)
-  logging.info(ip)
-  get_process_url += ip # 这下面的data就无意义
-  # ip = urllib.urlencode(ip)
-  req = urllib2.Request(url=get_process_url, data=ip)
-  res = urllib2.urlopen(req)
-  get_data = res.read()
-  return get_data
-
-def get_Old_cycle():
-  print("开始。。。")
-  get_data = getAllprocess()
-  print("结束。。。")
-  for i in range(get_data.__len__()):
-    with open("all_items", "a") as fd:
-      fd.write(json.dumps(get_data[i]))
-      fd.write("\n")
-  for i in range(get_data.__len__()):
-    with open("allcycle_a", "a") as fd:
-      trigger_cycle_value = "trigger_cycle_value" + str(get_data[i]["trigger_cycle_value"])
-      fd.write(trigger_cycle_value)  # str
-      fd.write("\n")
-
-def get_New_cycle():
-  get_data = getAllprocess()
-  for i in range(get_data.__len__()):
-    with open("allcycle_b", "a") as fd:
-      trigger_cycle_value = "trigger_cycle_value" + str(get_data[i]["trigger_cycle_value"])
-      fd.write(trigger_cycle_value)  # str
-      fd.write("\n")
-
-def gen_Cron_first():
-  os.system("crontab -l >> {0}".format(crontab_opvis_a))
-  p = os.popen("crontab -l|grep pmonitor|wc -l").readline()[0]
-  if int(p) < 1:
-    with open(allcycle_a, "r") as fd:
-      lines = fd.readlines()
-      for i in lines:
-        cron_cmd = "*" + "/" + str(1) + " \* \* \* \* python " + pmonitorDir + " " + "trigger_cycle_value=" + str(i) + " \>\> " + " " + pmonitorLog
-        os.system("echo {0} >> {1}".format(cron_cmd, crontab_opvis_b))
-      os.system("crontab {0}".format(crontab_opvis_b))
-
-def gen_Cron_later():
-  get_New_cycle()
-  stra = []
-  strb = []
-  strc = []
-  fa = open(allcycle_a, 'r')
-  fb = open(allcycle_b, 'r')
-  fc = open(allcycle_c, 'w')
-  for line in fa.readlines():
-    stra.append(line.replace("\n", ''))
-  for line in fb.readlines():
-    strb.append(line.replace("\n", ''))
-  for j in strb:
-    if j not in stra:
-      strc.append(j)
-  for i in strc:
-    fc.write(i + "\n")
-  fa.close()
-  fb.close()
-  fc.close()
-  os.system("crontab -l|grep pmonitor.py >> {0}".format(crontab_opvis_c))
-  with open(allcycle_c, "r") as fd:
-    lines = fd.readlines()
-    for i in lines:
-      cron_cmd = "*" + "/" + str(1) + " \* \* \* \* python " + pmonitorDir + " " + "trigger_cycle_value=" + str(i) + " \>\> " + " " + pmonitorLog
-      os.system("echo {0} >> {1}".format(cron_cmd, crontab_opvis_c))
-    os.system("crontab {0}".format(crontab_opvis_c))
-os.remove(allcycle_a)
-os.rename(allcycle_b, allcycle_a)
-
-get_Old_cycle()
-gen_Cron_first()
-gen_Cron_later()
-########################################################################################################################
 
 # Get data from proxy
 while True:
