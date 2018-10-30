@@ -196,13 +196,14 @@ def sendFileName():
         req = urllib2.Request(url=agentrequrl, data=data)
         res = urllib2.urlopen(req)
         result = res.read()
-        logging.info("Get data from proxy when upgrade agent: " + str(result))
-        result1 = json.loads(result)
-        NEW_VERSION = result1["agentVersion"]
-        if NEW_VERSION > VERSION:
-          send_to_server = result
-          udpsocket.sendto(send_to_server, address)
-          udpsocket.close()
+        if result:
+          logging.info("Get data from proxy when upgrade agent: " + str(result))
+          result1 = json.loads(result)
+          NEW_VERSION = result1["agentVersion"]
+          if NEW_VERSION > VERSION:
+            send_to_server = result
+            udpsocket.sendto(send_to_server, address)
+            udpsocket.close()
         #logging.info("Send upgrade data to agent.")
       except Exception as e:
         logging.info("Upgrade agent error: " + str(e))
