@@ -38,6 +38,7 @@ fh.setFormatter(formatter)
 logger.addHandler(fh)
 
 ##################################################################################
+os.mkdirs("/home/opvis/opvis_agent/agent_service/pm")
 allitems = "/home/opvis/opvis_agent/agent_service/pm/allitems"
 allcycle_a = "/home/opvis/opvis_agent/agent_service/pm/allcycle_a"
 allcycle_b = "/home/opvis/opvis_agent/agent_service/pm/allcycle_b"
@@ -247,8 +248,9 @@ def reportheart():
         data = res.read()
       except Exception as e:
         logging.info("Report heart to proxy error: " + str(e))
-      logging.info("Report heart to proxy success: " + str(data))
-      time.sleep(float(240))
+      if data:
+        logging.info("Report heart to proxy success: " + str(data))
+        time.sleep(float(240))
   except Exception as e:
     logging.info("Report heart to proxy error: " + str(e))
 try:
