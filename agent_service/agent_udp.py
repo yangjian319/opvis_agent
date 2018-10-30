@@ -316,7 +316,9 @@ def getAllprocess():
   return get_data
 
 def get_Old_cycle():
+  print("开始。。。")
   get_data = getAllprocess()
+  print("结束。。。")
   for i in range(get_data.__len__()):
     with open("all_items", "a") as fd:
       fd.write(json.dumps(get_data[i]))
