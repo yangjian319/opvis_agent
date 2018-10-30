@@ -170,20 +170,9 @@ with open("/home/opvis/opvis_agent/agent_service/agent.lock","r") as fd:
 
 # 查询数据库函数
 def getAllprocess():
+  proxy_ip = "172.30.130.126"
   get_process_url = "http://" + proxy_ip + ":9995" + "/selectinfo/"  # 这里应该也是需要拼接，ip为读取写入本地的ip文件
-  ips = []
-  ip = {}
-  allips = get_all_ips()
-  for item in allips:
-    hip = re_format_ip(item)
-    out = read_ip(hip)
-    out.replace("\n", "")
-    out.replace("\r", "")
-    if out == "127.0.0.1":
-      continue
-    ips.append(out)
-    ip = ",".join(ips)
-  logging.info(ip)
+  ip = "10.144.2.136"
   get_process_url += ip # 这下面的data就无意义
   # ip = urllib.urlencode(ip)
   req = urllib2.Request(url=get_process_url, data=ip)
@@ -192,25 +181,27 @@ def getAllprocess():
   return get_data
 
 def get_Old_cycle():
-  print("开始。。。")
   get_data = getAllprocess()
-  print("结束。。。")
-  for i in range(get_data.__len__()):
-    with open("all_items", "a") as fd:
-      fd.write(json.dumps(get_data[i]))
+  for i in json.loads(get_data):
+    with open(allitems, "a") as fd:
+      fd.write(json.dumps(i))
       fd.write("\n")
-  for i in range(get_data.__len__()):
-    with open("allcycle_a", "a") as fd:
-      trigger_cycle_value = "trigger_cycle_value" + str(get_data[i]["trigger_cycle_value"])
-      fd.write(trigger_cycle_value)  # str
+  trigger_cycle_value = []
+  for x in json.loads(get_data):
+    trigger_cycle_value.append(str(x["trigger_cycle_value"]))
+  for cycle in set(trigger_cycle_value):
+    with open(allcycle_a, "a") as fd:
+      fd.write(cycle)
       fd.write("\n")
 
 def get_New_cycle():
   get_data = getAllprocess()
-  for i in range(get_data.__len__()):
-    with open("allcycle_b", "a") as fd:
-      trigger_cycle_value = "trigger_cycle_value" + str(get_data[i]["trigger_cycle_value"])
-      fd.write(trigger_cycle_value)  # str
+  trigger_cycle_value = []
+  for x in json.loads(get_data):
+    trigger_cycle_value.append(str(x["trigger_cycle_value"]))
+  for cycle in set(trigger_cycle_value):
+    with open(allcycle_b, "a") as fd:
+      fd.write(cycle)
       fd.write("\n")
 
 def gen_Cron_first():
@@ -220,8 +211,10 @@ def gen_Cron_first():
     with open(allcycle_a, "r") as fd:
       lines = fd.readlines()
       for i in lines:
-        cron_cmd = "*" + "/" + str(1) + " \* \* \* \* python " + pmonitorDir + " " + "trigger_cycle_value=" + str(i) + " \>\> " + " " + pmonitorLog
-        os.system("echo {0} >> {1}".format(cron_cmd, crontab_opvis_b))
+        cron_cmd = "*" + "/" + str(i).strip("\n") + " * * * * python " + pmonitorDir + " " + "cycle=" + str(i)
+        with open(crontab_opvis_b,"a") as fd:
+          fd.write(cron_cmd)
+          fd.write("\n")
       os.system("crontab {0}".format(crontab_opvis_b))
 
 def gen_Cron_later():
@@ -248,15 +241,17 @@ def gen_Cron_later():
   with open(allcycle_c, "r") as fd:
     lines = fd.readlines()
     for i in lines:
-      cron_cmd = "*" + "/" + str(1) + " \* \* \* \* python " + pmonitorDir + " " + "trigger_cycle_value=" + str(i) + " \>\> " + " " + pmonitorLog
-      os.system("echo {0} >> {1}".format(cron_cmd, crontab_opvis_c))
+      cron_cmd = "*" + "/" + str(i).strip("\n") + " * * * * python " + pmonitorDir + " " + "cycle=" + str(i)
+      with open(crontab_opvis_c, "a") as fd:
+        fd.write(cron_cmd)
+        fd.write("\n")
     os.system("crontab {0}".format(crontab_opvis_c))
-os.remove(allcycle_a)
-os.rename(allcycle_b, allcycle_a)
 
 get_Old_cycle()
 gen_Cron_first()
 gen_Cron_later()
+os.remove(allcycle_a)
+os.rename(allcycle_b, allcycle_a)
 ########################################################################################################################
 
 # Upload installed plugins and get upgrade agent informations
@@ -402,7 +397,7 @@ while True:
   name = dic.get("name")
 ########################################################################################################################
   pstatus = dic["pstatus"]
-  processip = dic[ip]
+  processip = dic["ip"]
   if pstatus == 7 and processip == localip:
     gen_Cron_later()
 ########################################################################################################################
