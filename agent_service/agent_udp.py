@@ -35,9 +35,13 @@ formatter = logging.Formatter(format_str, datefmt)
 fh.setFormatter(formatter)
 logger.addHandler(fh)
 
+# path
 ##################################################################################
 if not os.path.exists("/home/opvis/opvis_agent/agent_service/pm"):
   os.makedirs("/home/opvis/opvis_agent/agent_service/pm")
+if not os.path.exists("/home/opvis/opvis_agent/agent_service/cron"):
+  os.mkdir("/home/opvis/opvis_agent/agent_service/cron")
+
 allitems = "/home/opvis/opvis_agent/agent_service/pm/allitems"
 allcycle_a = "/home/opvis/opvis_agent/agent_service/pm/allcycle_a"
 allcycle_b = "/home/opvis/opvis_agent/agent_service/pm/allcycle_b"
@@ -50,12 +54,15 @@ crontab_opvis_c = "/home/opvis/opvis_agent/agent_service/cron/crontab_opvis_c"
 pmonitorLog = "/home/opvis/opvis_agent/agent_service/log/pmonitor.log"
 pmonitorDir = "/home/opvis/opvis_agent/agent_service/plugin/pmonitor.py"
 
-# 看线上是用eth0还是eth1
-localip = os.popen("ifconfig eth0|grep 'inet'|awk 'NR==1 {print $2}'").read().replace("\n", "")
+# get local ip, eth0
+localip = os.popen("ifconfig eth0|grep 'inet'|awk 'NR==1 {print $2}'|awk -F ':' '{print $2}'").read().replace("\n", "")
+with open("/home/opvis/opvis_agent/agent_service/localip.lock", "wb") as fd:
+  fd.write(localip)
 ##################################################################################
 
-iplist = ["172.30.130.137:18382", "172.30.130.126:18382", "10.124.5.163:18382", "10.144.2.248:18382",
-          "10.123.30.177:18382", "172.30.194.121:18382", "172.16.5.20:18382", "10.181.1.0:18382"]
+# iplist = ["172.30.130.137:18382", "172.30.130.126:18382", "10.124.5.163:18382", "10.144.2.248:18382",
+#           "10.123.30.177:18382", "172.30.194.121:18382", "172.16.5.20:18382", "10.181.1.0:18382"]
+iplist = ["172.30.130.126:18382"]
 for ip in iplist:
   try:
     so = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -163,104 +170,12 @@ def re_format_ip(addr):
     ret = ret + str(hex(ord(addr[0])))[2:]
   return ret
 
-########################################################################################################################
-# 获得本机房proxy的ip地址用于url拼接
-with open("/home/opvis/opvis_agent/agent_service/agent.lock","r") as fd:
-  proxy_ip = fd.readline()
-
-# 查询数据库函数
-def getAllprocess():
-  proxy_ip = "172.30.130.126"
-  get_process_url = "http://" + proxy_ip + ":9995" + "/selectinfo/"  # 这里应该也是需要拼接，ip为读取写入本地的ip文件
-  ip = "10.144.2.136"
-  get_process_url += ip # 这下面的data就无意义
-  # ip = urllib.urlencode(ip)
-  req = urllib2.Request(url=get_process_url, data=ip)
-  res = urllib2.urlopen(req)
-  get_data = res.read()
-  return get_data
-
-def get_Old_cycle():
-  get_data = getAllprocess()
-  for i in json.loads(get_data):
-    with open(allitems, "a") as fd:
-      fd.write(json.dumps(i))
-      fd.write("\n")
-  trigger_cycle_value = []
-  for x in json.loads(get_data):
-    trigger_cycle_value.append(str(x["trigger_cycle_value"]))
-  for cycle in set(trigger_cycle_value):
-    with open(allcycle_a, "a") as fd:
-      fd.write(cycle)
-      fd.write("\n")
-
-def get_New_cycle():
-  get_data = getAllprocess()
-  trigger_cycle_value = []
-  for x in json.loads(get_data):
-    trigger_cycle_value.append(str(x["trigger_cycle_value"]))
-  for cycle in set(trigger_cycle_value):
-    with open(allcycle_b, "a") as fd:
-      fd.write(cycle)
-      fd.write("\n")
-
-def gen_Cron_first():
-  os.system("crontab -l >> {0}".format(crontab_opvis_a))
-  p = os.popen("crontab -l|grep pmonitor|wc -l").readline()[0]
-  if int(p) < 1:
-    with open(allcycle_a, "r") as fd:
-      lines = fd.readlines()
-      for i in lines:
-        cron_cmd = "*" + "/" + str(i).strip("\n") + " * * * * python " + pmonitorDir + " " + "cycle=" + str(i)
-        with open(crontab_opvis_b,"a") as fd:
-          fd.write(cron_cmd)
-          fd.write("\n")
-      os.system("crontab {0}".format(crontab_opvis_b))
-
-def gen_Cron_later():
-  get_New_cycle()
-  stra = []
-  strb = []
-  strc = []
-  fa = open(allcycle_a, 'r')
-  fb = open(allcycle_b, 'r')
-  fc = open(allcycle_c, 'w')
-  for line in fa.readlines():
-    stra.append(line.replace("\n", ''))
-  for line in fb.readlines():
-    strb.append(line.replace("\n", ''))
-  for j in strb:
-    if j not in stra:
-      strc.append(j)
-  for i in strc:
-    fc.write(i + "\n")
-  fa.close()
-  fb.close()
-  fc.close()
-  os.system("crontab -l|grep pmonitor.py >> {0}".format(crontab_opvis_c))
-  with open(allcycle_c, "r") as fd:
-    lines = fd.readlines()
-    for i in lines:
-      cron_cmd = "*" + "/" + str(i).strip("\n") + " * * * * python " + pmonitorDir + " " + "cycle=" + str(i)
-      with open(crontab_opvis_c, "a") as fd:
-        fd.write(cron_cmd)
-        fd.write("\n")
-    os.system("crontab {0}".format(crontab_opvis_c))
-
-get_Old_cycle()
-gen_Cron_first()
-gen_Cron_later()
-os.remove(allcycle_a)
-os.rename(allcycle_b, allcycle_a)
-########################################################################################################################
-
 # Upload installed plugins and get upgrade agent informations
 def sendFileName():
   try:
     while True:
       requrl = "http://" + jifangip + "/umsproxy/autoProxyPlugIn/sendFileName"
       filenames = file_name(plugin_dir)
-      #logging.info(filenames)
       name = {}
       allips = get_all_ips()
       for item in allips:
@@ -295,7 +210,6 @@ def sendFileName():
             send_to_server = result
             udpsocket.sendto(send_to_server, address)
             udpsocket.close()
-        #logging.info("Send upgrade data to agent.")
       except Exception as e:
         logging.info("Upgrade agent error: " + str(e))
       time.sleep(float(240))
@@ -377,6 +291,123 @@ def callplugin():
     cmd = "python /home/opvis/opvis_agent/agent_service/plugin/update.py" + " " + data2
     ret = os.system(cmd)
 
+########################################################################################################################
+def getAllprocess():
+  with open("/home/opvis/opvis_agent/agent_service/agent.lock", "r") as fd:
+    proxy_ip = fd.readline().split(":")[0]
+  get_process_url = "http://" + proxy_ip + ":9995" + "/selectinfo/"
+  ips = []
+  allips = get_all_ips()
+  for item in allips:
+    hip = re_format_ip(item)
+    out = read_ip(hip)
+    out.replace("\n", "")
+    out.replace("\r", "")
+    if out == "127.0.0.1":
+      continue
+    ips.append(out)
+    ip = ",".join(ips)
+  get_process_url += ip
+  logging.info(get_process_url)
+  req = urllib2.Request(url=get_process_url, data=ip)
+  res = urllib2.urlopen(req)
+  get_data = res.read()
+  return get_data
+
+def get_Old_cycle():
+  while True:
+    try:
+      get_data = getAllprocess()
+      if get_data:
+        break
+    except Exception as e:
+      logging.info("Can't connect to proxy")
+      time.sleep(10)
+  if get_data:
+    for i in json.loads(get_data):
+      with open(allitems, "a") as fd:
+        fd.write(json.dumps(i))
+        fd.write("\n")
+    trigger_cycle_value = []
+    for x in json.loads(get_data):
+      trigger_cycle_value.append(str(x["trigger_cycle_value"]))
+    for cycle in set(trigger_cycle_value):
+      with open(allcycle_a, "a") as fd:
+        fd.write('"trigger_cycle_value": ' + str(cycle))
+        fd.write("\n")
+    gen_Cron_first()
+  else:
+    logging.info("No data return from database. --get_Old_cycle()")
+
+def get_New_cycle():
+  while True:
+    try:
+      get_data = getAllprocess()
+      if get_data:
+        break
+    except Exception as e:
+      logging.info("Can't connect to proxy")
+      time.sleep(10)
+  if get_data:
+    trigger_cycle_value = []
+    for x in json.loads(get_data):
+      trigger_cycle_value.append(str(x["trigger_cycle_value"]))
+    for cycle in set(trigger_cycle_value):
+      with open(allcycle_b, "a") as fd:
+        fd.write('"trigger_cycle_value": ' + str(cycle))
+        fd.write("\n")
+  else:
+    logging.info("No data return from database. --get_New_cycle()")
+
+def gen_Cron_first():
+  os.system("crontab -l >> {0}".format(crontab_opvis_a))
+  p = os.popen("crontab -l|grep pmonitor|wc -l").readline()[0]
+  if int(p) < 1:
+    with open(allcycle_a, "r") as fd:
+      lines = fd.readlines()
+      for i in lines:
+        # format of i --> "trigger_cycle_value": 2
+        i = "cycle=" + i.split(":")[1].strip(" ")
+        cron_cmd = "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n") + " * * * * python " + pmonitorDir + " " + str(i)
+        with open(crontab_opvis_b,"a") as fd:
+          fd.write(cron_cmd)
+          fd.write("\n")
+      os.system("crontab {0}".format(crontab_opvis_b))
+
+def gen_Cron_later():
+  get_New_cycle()
+  stra = []
+  strb = []
+  strc = []
+  fa = open(allcycle_a, 'r')
+  fb = open(allcycle_b, 'r')
+  fc = open(allcycle_c, 'w')
+  for line in fa.readlines():
+    stra.append(line.replace("\n", ''))
+  for line in fb.readlines():
+    strb.append(line.replace("\n", ''))
+  for j in strb:
+    if j not in stra:
+      strc.append(j)
+  for i in strc:
+    fc.write(i + "\n")
+  fa.close()
+  fb.close()
+  fc.close()
+  os.system("crontab -l|grep pmonitor.py >> {0}".format(crontab_opvis_c))
+  with open(allcycle_c, "r") as fd:
+    lines = fd.readlines()
+    for i in lines:
+      i = "cycle=" + i.split(":")[1].strip(" ")
+      cron_cmd = "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n") + " * * * * python " + pmonitorDir + " " + str(i)
+      with open(crontab_opvis_c, "a") as fd:
+        fd.write(cron_cmd)
+        fd.write("\n")
+    os.system("crontab {0}".format(crontab_opvis_c))
+
+get_Old_cycle()
+########################################################################################################################
+
 # Get data from proxy
 while True:
   data, addr = udpsocket.recvfrom(2018)
@@ -391,6 +422,7 @@ while True:
   dic = json.loads(data)
   logging.info("Change data to dict: " + str(dic))
   if addr[0] != "127.0.0.1":
+
     status = dic["pluginfo"]["status"]
     tmp_url = dic["pluginfo"]["url"]
     plugin_name = tmp_url.split("/")[-1]
@@ -400,6 +432,9 @@ while True:
   processip = dic["ip"]
   if pstatus == 7 and processip == localip:
     gen_Cron_later()
+    os.remove(allcycle_a)
+    os.rename(allcycle_b, allcycle_a)
+    os.remove(allcycle_c)
 ########################################################################################################################
   if name == "updateAgent":
     break
@@ -418,3 +453,7 @@ try:
   ret = os.system(cmd)
 except Exception as e:
   logging.info("Upgrade agent error: " + str(e))
+
+d = {"a":1,"b":2}
+
+
