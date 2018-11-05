@@ -35,72 +35,23 @@ formatter = logging.Formatter(format_str, datefmt)
 fh.setFormatter(formatter)
 logger.addHandler(fh)
 
-# path
-##################################################################################
-if not os.path.exists("/home/opvis/opvis_agent/agent_service/pm"):
-  os.makedirs("/home/opvis/opvis_agent/agent_service/pm")
-if not os.path.exists("/home/opvis/opvis_agent/agent_service/cron"):
-  os.mkdir("/home/opvis/opvis_agent/agent_service/cron")
 
-allitems = "/home/opvis/opvis_agent/agent_service/pm/allitems"
-allcycle_a = "/home/opvis/opvis_agent/agent_service/pm/allcycle_a"
-allcycle_b = "/home/opvis/opvis_agent/agent_service/pm/allcycle_b"
-allcycle_c = "/home/opvis/opvis_agent/agent_service/pm/allcycle_c"
-
-crontab_opvis_a = "/home/opvis/opvis_agent/agent_service/cron/crontab_opvis_a"
-crontab_opvis_b = "/home/opvis/opvis_agent/agent_service/cron/crontab_opvis_b"
-crontab_opvis_c = "/home/opvis/opvis_agent/agent_service/cron/crontab_opvis_c"
-
-pmonitorLog = "/home/opvis/opvis_agent/agent_service/log/pmonitor.log"
-pmonitorDir = "/home/opvis/opvis_agent/agent_service/plugin/pmonitor.py"
-
-# get local ip, eth0
-localip = os.popen("ifconfig eth0|grep 'inet'|awk 'NR==1 {print $2}'|awk -F ':' '{print $2}'").read().replace("\n", "")
-with open("/home/opvis/opvis_agent/agent_service/localip.lock", "wb") as fd:
-  fd.write(localip)
-##################################################################################
-
-# iplist = ["172.30.130.137:18382", "172.30.130.126:18382", "10.124.5.163:18382", "10.144.2.248:18382",
-#           "10.123.30.177:18382", "172.30.194.121:18382", "172.16.5.20:18382", "10.181.1.0:18382"]
-iplist = ["172.30.130.126:18382"]
-for ip in iplist:
+def daemon_process():
   try:
-    so = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    so.settimeout(2)
-    so.connect((ip.split(":")[0], 18382))
-    currentip = ip
-    with open("/home/opvis/opvis_agent/agent_service/agent.lock", "wb") as fd:
-      fd.write(currentip)
-    so.close()
-  except Exception as e:
-    logging.info("Determine which area the machine belongs to error: " + str(e))
-jifangip = currentip
-plugin_dir = "/home/opvis/opvis_agent/agent_service/plugin/"
-
-try:
-  address = ("0.0.0.0", 9997)
-  udpsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  udpsocket.bind(address)
-except Exception as e:
-  logging.info("Udp connection error: " + str(e))
-
-try:
-  if os.fork() > 0:
-    sys.exit(0)
-except OSError, error:
-  logging.info("agent_udp.py first fork failed!")
-  sys.exit(1)
-
-os.chdir("/")
-os.setsid()
-os.umask(0)
-
-try:
-  if os.fork() > 0:
-    sys.exit(0)
-except OSError, error:
-  logging.info("agent_udp.py second fork failed!")
-  sys.exit(1)
+    if os.fork() > 0:
+      sys.exit(0)
+  except OSError, error:
+    logging.info("agent_udp.py first fork failed!")
+    sys.exit(1)
+  os.chdir("/")
+  os.setsid()
+  os.umask(0)
+  try:
+    if os.fork() > 0:
+      sys.exit(0)
+  except OSError, error:
+    logging.info("agent_udp.py second fork failed!")
+    sys.exit(1)
 
 def post_md5():
   (status, md5) = commands.getstatusoutput("sudo md5sum /root/.ssh/authorized_keys|awk '{print $1}'")
@@ -110,16 +61,13 @@ def post_md5():
   try:
     args_restful = urllib.urlencode(req_data)
     req = urllib2.Request(url=requrl, data=args_restful)
-    res = urllib2.urlopen(req)
+    res = urllib2.urlopen(req,timeout=70)
     data = res.read()
   except Exception as e:
-    logging.info("Upload the native MD5 value to the proxy error: " + str(e))
-  logging.info("Upload the native MD5 value to the proxy successfully: " + str(data))
-try:
-  post_md5()
-except Exception as e:
-  logging.info("Upload the native MD5 value to the proxy error: " + str(e))
+    logging.info("Upload MD5 to proxy error: " + str(e))
+  logging.info("Upload MD5 to proxy successfully: " + str(data))
 
+# get pluginname
 def file_name(plugin_dir):
   list = []
   for root, dirs, files in os.walk(plugin_dir):
@@ -188,41 +136,40 @@ def sendFileName():
         name = {"names":filenames}
         name["ip"] = out
         name = urllib.urlencode(name)
-        logging.info("Upload ip and pluginName: " + str(name))
+        logging.info("Upload ip and plugin name: " + str(name))
       try:
         req = urllib2.Request(url=requrl, data=name)
         res = urllib2.urlopen(req)
         data = res.read()
       except Exception as e:
-        logging.info("Upload the machine IP and installed plugins to the proxy error: " + str(e))
-      logging.info("Upload the machine IP and installed plugins to the proxy success: " + str(data))
-      try:
-        agentrequrl = "http://" + jifangip + "/umsproxy/autoProxyPlugIn/checkAgentVersion"
-        data = ""
-        req = urllib2.Request(url=agentrequrl, data=data)
-        res = urllib2.urlopen(req)
-        result = res.read()
-        if result:
-          logging.info("Get data from proxy when upgrade agent: " + str(result))
-          result1 = json.loads(result)
-          NEW_VERSION = result1["agentVersion"]
-          if NEW_VERSION > VERSION:
-            send_to_server = result
-            udpsocket.sendto(send_to_server, address)
-            udpsocket.close()
-      except Exception as e:
-        logging.info("Upgrade agent error: " + str(e))
+        logging.info("Upload ip and plugin name to proxy error: " + str(e))
+      logging.info("Upload ip and plugin name to proxy success: " + str(data))
       time.sleep(float(240))
   except Exception as e:
     logging.info("Upload the machine IP and installed plugins to the proxy error: " + str(e))
-try:
-  sendfilename = threading.Thread(target=sendFileName, args=())
-  sendfilename.start()
-except Exception as e:
-  logging.info("Upload the machine IP and installed plugins to the proxy, thread error: " + str(e))
+
+def check_version():
+  try:
+    agentrequrl = "http://" + jifangip + "/umsproxy/autoProxyPlugIn/checkAgentVersion"
+    data = ""
+    req = urllib2.Request(url=agentrequrl, data=data)
+    res = urllib2.urlopen(req)
+    result = res.read()
+    if result:
+      logging.info("Get data from proxy when upgrade agent: " + str(result))
+      result1 = json.loads(result)
+      NEW_VERSION = result1["agentVersion"]
+      if NEW_VERSION > VERSION:
+        send_to_server = result
+        udpsocket.sendto(send_to_server, address)
+        udpsocket.close()
+      time.sleep(float(240)) # 位置
+  except Exception as e:
+    logging.info("Upgrade agent error: " + str(e))
+
 
 # report heart
-def reportheart():
+def report_heart():
   try:
     while True:
       if os.path.exists("/home/opvis/opvis_agent/agent_service/agent.lock"):
@@ -257,15 +204,8 @@ def reportheart():
         time.sleep(float(240))
   except Exception as e:
     logging.info("Report heart to proxy error: " + str(e))
-try:
-  t = threading.Thread(target=reportheart, args=())
-  t.daemon = True
-  t.start()
-except Exception as e:
-  logging.info("Report heart to proxy error: " + str(e))
 
-
-def callplugin():
+def call_plugin(status,tmp_url,dic,plugin_name,data2):
   dirs = os.listdir(plugin_dir)
   plugin_dir1 = os.path.join(plugin_dir, plugin_name)
   if status == 6:
@@ -314,6 +254,21 @@ def getAllprocess():
   get_data = res.read()
   return get_data
 
+def gen_Cron_first():
+  os.system("crontab -l >> {0}".format(crontab_opvis_a))
+  p = os.popen("crontab -l|grep pmonitor|wc -l").readline()[0]
+  if int(p) < 1:
+    with open(allcycle_a, "r") as fd:
+      lines = fd.readlines()
+      for i in lines:
+        # format of i --> "trigger_cycle_value": 2
+        i = "cycle=" + i.split(":")[1].strip(" ")
+        cron_cmd = "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n") + " * * * * python " + pmonitorDir + " " + str(i)
+        with open(crontab_opvis_b,"a") as fd:
+          fd.write(cron_cmd)
+          fd.write("\n")
+      os.system("crontab {0}".format(crontab_opvis_b))
+
 def get_Old_cycle():
   while True:
     try:
@@ -332,7 +287,7 @@ def get_Old_cycle():
     for x in json.loads(get_data):
       trigger_cycle_value.append(str(x["trigger_cycle_value"]))
     for cycle in set(trigger_cycle_value):
-      with open(allcycle_a, "a") as fd:
+      with open(allcycle_a, "a") as fd:  # format  "trigger_cycle_value": 1
         fd.write('"trigger_cycle_value": ' + str(cycle))
         fd.write("\n")
     gen_Cron_first()
@@ -359,22 +314,7 @@ def get_New_cycle():
   else:
     logging.info("No data return from database. --get_New_cycle()")
 
-def gen_Cron_first():
-  os.system("crontab -l >> {0}".format(crontab_opvis_a))
-  p = os.popen("crontab -l|grep pmonitor|wc -l").readline()[0]
-  if int(p) < 1:
-    with open(allcycle_a, "r") as fd:
-      lines = fd.readlines()
-      for i in lines:
-        # format of i --> "trigger_cycle_value": 2
-        i = "cycle=" + i.split(":")[1].strip(" ")
-        cron_cmd = "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n") + " * * * * python " + pmonitorDir + " " + str(i)
-        with open(crontab_opvis_b,"a") as fd:
-          fd.write(cron_cmd)
-          fd.write("\n")
-      os.system("crontab {0}".format(crontab_opvis_b))
-
-def gen_Cron_later():
+def gen_Cron_later():  #大循环
   get_New_cycle()
   stra = []
   strb = []
@@ -405,55 +345,136 @@ def gen_Cron_later():
         fd.write("\n")
     os.system("crontab {0}".format(crontab_opvis_c))
 
-get_Old_cycle()
 ########################################################################################################################
+def main():
+  # try:
+  #   address = ("0.0.0.0", 9997)
+  #   udpsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+  #   udpsocket.bind(address)
+  # except Exception as e:
+  #   logging.info("Udp connection error: " + str(e))
 
-# Get data from proxy
-while True:
-  data, addr = udpsocket.recvfrom(2018)
-  time_second = time.time()
-  logging.info(addr)
-  logging.info("Time of data received: " + str(time_second))
-  logging.info("Receive data from proxy: " + str(data))
-  data1 = "{0}".format(data)
-  lstr = "'''"
-  rstr = "'''"
-  data2 = lstr + data1 + rstr
-  dic = json.loads(data)
-  logging.info("Change data to dict: " + str(dic))
-  if addr[0] != "127.0.0.1":
+  try:
+    sendfilename = threading.Thread(target=sendFileName, args=())
+    sendfilename.start()
+  except Exception as e:
+    logging.info("Upload ip and plugin name to proxy, thread error: " + str(e))
 
-    status = dic["pluginfo"]["status"]
-    tmp_url = dic["pluginfo"]["url"]
-    plugin_name = tmp_url.split("/")[-1]
-  name = dic.get("name")
-########################################################################################################################
-  pstatus = dic["pstatus"]
-  processip = dic["ip"]
-  if pstatus == 7 and processip == localip:
-    gen_Cron_later()
-    os.remove(allcycle_a)
-    os.rename(allcycle_b, allcycle_a)
-    os.remove(allcycle_c)
-########################################################################################################################
-  if name == "updateAgent":
-    break
-  else:
+  try:
+    reportheart = threading.Thread(target=report_heart, args=())
+    reportheart.daemon = True
+    reportheart.start()
+  except Exception as e:
+    logging.info("Report heart, thread error: " + str(e))
+
+  try:
+    checkversion = threading.Thread(target=check_version, args=())
+    checkversion.daemon = True
+    checkversion.start()
+  except Exception as e:
+    logging.info("Check version, thread error: " + str(e))
+
+  # Get data from proxy
+  while True:
+    data, addr = udpsocket.recvfrom(2018)
+    time_second = time.time()
+    logging.info(addr)
+    logging.info("Time of data received: " + str(time_second))
+    logging.info("Receive data from proxy: " + str(data))
+    data1 = "{0}".format(data)
+    lstr = "'''"
+    rstr = "'''"
+    data2 = lstr + data1 + rstr
+    dic = json.loads(data)
+    logging.info("Change data to dict: " + str(dic))
+
+# 如果收到的是flask传过来的内容，dic里面肯定有pstatus
+    if "pstatus" in dic:
+      #pstatus = dic["pstatus"]
+      gen_Cron_later()
+      os.remove(allcycle_a)
+      os.rename(allcycle_b, allcycle_a)
+      os.remove(allcycle_c)
+# 如果是proxy传过来的消息，即dic里面不包含pstatus
+    else:
+      # proxy发过来的
+      if addr[0] != "127.0.0.1":
+        status = dic["pluginfo"]["status"]
+        tmp_url = dic["pluginfo"]["url"]
+        plugin_name = tmp_url.split("/")[-1]
+        try:
+          callplugin = threading.Thread(target=call_plugin, args=(status,tmp_url,dic,plugin_name,data2))
+          callplugin.daemon = True
+          callplugin.start()
+        except Exception, e:
+          logging.info("Call the plugin error: " + str(e))
+      # 自己本机发送的
+      else:
+        name = dic.get("name")
+        if name == "updateAgent":
+          break
+  # Upgrade agent
+  udpsocket.close()
+  try:
+    cmd = "python /home/opvis/opvis_agent/agent_service/update/agentupdate.py" + " " + data2
+    ret = os.system(cmd)
+  except Exception as e:
+    logging.info("Upgrade agent error: " + str(e))
+
+if __name__=='__main__':
+  try:
+    address = ("0.0.0.0", 9997)
+    udpsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udpsocket.bind(address)
+  except Exception as e:
+    logging.info("Udp connection error: " + str(e))
+
+  # iplist = ["172.30.130.137:18382", "172.30.130.126:18382", "10.124.5.163:18382", "10.144.2.248:18382",
+  #           "10.123.30.177:18382", "172.30.194.121:18382", "172.16.5.20:18382", "10.181.1.0:18382"]
+  iplist = ["172.30.130.126:18382"]
+  for ip in iplist:
     try:
-      t = threading.Thread(target=callplugin, args=())
-      t.daemon = True
-      t.start()
-    except Exception, e:
-      logging.info("Call the plugin error: " + str(e))
+      so = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      so.settimeout(2)
+      so.connect((ip.split(":")[0], 18382))
+      currentip = ip
+      with open("/home/opvis/opvis_agent/agent_service/agent.lock", "wb") as fd:
+        fd.write(currentip)
+      so.close()
+    except Exception as e:
+      logging.info("Determine which area the machine belongs to error: " + str(e))
+  jifangip = currentip
 
-# Upgrade agent
-udpsocket.close()
-try:
-  cmd = "python /home/opvis/opvis_agent/agent_service/update/agentupdate.py" + " " + data2
-  ret = os.system(cmd)
-except Exception as e:
-  logging.info("Upgrade agent error: " + str(e))
+  daemon_process()
 
-d = {"a":1,"b":2}
+  if not os.path.exists("/home/opvis/opvis_agent/agent_service/pm"):
+    os.makedirs("/home/opvis/opvis_agent/agent_service/pm")
+  if not os.path.exists("/home/opvis/opvis_agent/agent_service/cron"):
+    os.mkdir("/home/opvis/opvis_agent/agent_service/cron")
 
+  allitems = "/home/opvis/opvis_agent/agent_service/pm/allitems"
+  allcycle_a = "/home/opvis/opvis_agent/agent_service/pm/allcycle_a"
+  allcycle_b = "/home/opvis/opvis_agent/agent_service/pm/allcycle_b"
+  allcycle_c = "/home/opvis/opvis_agent/agent_service/pm/allcycle_c"
 
+  crontab_opvis_a = "/home/opvis/opvis_agent/agent_service/cron/crontab_opvis_a"
+  crontab_opvis_b = "/home/opvis/opvis_agent/agent_service/cron/crontab_opvis_b"
+  crontab_opvis_c = "/home/opvis/opvis_agent/agent_service/cron/crontab_opvis_c"
+
+  pmonitorLog = "/home/opvis/opvis_agent/agent_service/log/pmonitor.log"
+  pmonitorDir = "/home/opvis/opvis_agent/agent_service/plugin/pmonitor.py"
+  plugin_dir = "/home/opvis/opvis_agent/agent_service/plugin/"
+
+  # get local ip, eth0
+  localip = os.popen("ifconfig eth0|grep 'inet'|awk 'NR==1 {print $2}'|awk -F ':' '{print $2}'").read().replace("\n",
+                                                                                                                "")
+  with open("/home/opvis/opvis_agent/agent_service/localip.lock", "wb") as fd:
+    fd.write(localip)
+
+  post_md5()
+  pid=os.fork()
+  if pid==0:
+    get_Old_cycle()
+    # sys.exit()
+  else:
+    main()
