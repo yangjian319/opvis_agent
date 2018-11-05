@@ -254,7 +254,7 @@ def getAllprocess():
   get_data = res.read()
   return get_data
 
-def gen_Cron_first():
+def gen_Cron_first_minute():
   os.system("crontab -l >> {0}".format(crontab_opvis_a))
   p = os.popen("crontab -l|grep pmonitor|wc -l").readline()[0]
   if int(p) < 1:
@@ -264,6 +264,21 @@ def gen_Cron_first():
         # format of i --> "trigger_cycle_value": 2
         i = "cycle=" + i.split(":")[1].strip(" ")
         cron_cmd = "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n") + " * * * * python " + pmonitorDir + " " + str(i)
+        with open(crontab_opvis_b,"a") as fd:
+          fd.write(cron_cmd)
+          fd.write("\n")
+      os.system("crontab {0}".format(crontab_opvis_b))
+
+def gen_Cron_first_hour():
+  os.system("crontab -l >> {0}".format(crontab_opvis_a))
+  p = os.popen("crontab -l|grep pmonitor|wc -l").readline()[0]
+  if int(p) < 1:
+    with open(allcycle_a, "r") as fd:
+      lines = fd.readlines()
+      for i in lines:
+        # format of i --> "trigger_cycle_value": 2
+        i = "cycle=" + i.split(":")[1].strip(" ")
+        cron_cmd = "* " + "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n") + " * * * python " + pmonitorDir + " " + str(i)
         with open(crontab_opvis_b,"a") as fd:
           fd.write(cron_cmd)
           fd.write("\n")
@@ -283,14 +298,28 @@ def get_Old_cycle():
       with open(allitems, "a") as fd:
         fd.write(json.dumps(i))
         fd.write("\n")
-    trigger_cycle_value = []
-    for x in json.loads(get_data):
-      trigger_cycle_value.append(str(x["trigger_cycle_value"]))
-    for cycle in set(trigger_cycle_value):
+    # 周期为分钟/小时
+    cycle_unit = json.loads(get_data)
+    logging.info(cycle_unit)
+    trigger_cycle_value_minute = []
+    trigger_cycle_value_hour = []
+    for x in cycle_unit:
+      if x["trigger_cycle_unit"] == 0:  # 周期为分钟
+        trigger_cycle_value_minute.append(str(x["trigger_cycle_value"]))
+        for cycle in set(trigger_cycle_value_minute):
+          with open(allcycle_a, "a") as fd:  # format  "trigger_cycle_value": 1
+            fd.write('"trigger_cycle_value": ' + str(cycle))
+            fd.write("\n")
+        gen_Cron_first_minute()
+      else:                             # 周期为小时
+        trigger_cycle_value_hour.append(str(x["trigger_cycle_value"]))
+        logging.info("trigger_cycle_value_hour")
+        logging.info(trigger_cycle_value_hour)
+    for cycle in set(trigger_cycle_value_hour):
       with open(allcycle_a, "a") as fd:  # format  "trigger_cycle_value": 1
         fd.write('"trigger_cycle_value": ' + str(cycle))
         fd.write("\n")
-    gen_Cron_first()
+    gen_Cron_first_hour()
   else:
     logging.info("No data return from database. --get_Old_cycle()")
 
@@ -304,18 +333,34 @@ def get_New_cycle():
       logging.info("Can't connect to proxy")
       time.sleep(10)
   if get_data:
-    trigger_cycle_value = []
-    for x in json.loads(get_data):
-      trigger_cycle_value.append(str(x["trigger_cycle_value"]))
-    for cycle in set(trigger_cycle_value):
-      with open(allcycle_b, "a") as fd:
+    for i in json.loads(get_data):
+      with open(allitems, "a") as fd:
+        fd.write(json.dumps(i))
+        fd.write("\n")
+    # 周期为分钟/小时
+    cycle_unit = json.loads(get_data)
+    trigger_cycle_value_minute = []
+    trigger_cycle_value_hour = []
+    for x in cycle_unit:
+      if x["trigger_cycle_unit"] == 0:  # 周期为分钟
+        trigger_cycle_value_minute.append(str(x["trigger_cycle_value"]))
+        for cycle in set(trigger_cycle_value_minute):
+          with open(allcycle_b, "a") as fd:  # format  "trigger_cycle_value": 1
+            fd.write('"trigger_cycle_value": ' + str(cycle))
+            fd.write("\n")
+        gen_Cron_later_minute()
+      else:                             # 周期为小时
+        trigger_cycle_value_hour.append(str(x["trigger_cycle_value"]))
+    for cycle in set(trigger_cycle_value_hour):
+      with open(allcycle_b, "a") as fd:  # format  "trigger_cycle_value": 1
         fd.write('"trigger_cycle_value": ' + str(cycle))
         fd.write("\n")
+    gen_Cron_later_hour()
   else:
-    logging.info("No data return from database. --get_New_cycle()")
+    logging.info("No data return from database. --get_Old_cycle()")
 
-def gen_Cron_later():  #大循环
-  get_New_cycle()
+def gen_Cron_later_minute():  #大循环
+  # get_New_cycle()
   stra = []
   strb = []
   strc = []
@@ -340,6 +385,37 @@ def gen_Cron_later():  #大循环
     for i in lines:
       i = "cycle=" + i.split(":")[1].strip(" ")
       cron_cmd = "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n") + " * * * * python " + pmonitorDir + " " + str(i)
+      with open(crontab_opvis_c, "a") as fd:
+        fd.write(cron_cmd)
+        fd.write("\n")
+    os.system("crontab {0}".format(crontab_opvis_c))
+
+def gen_Cron_later_hour():  #大循环
+  # get_New_cycle()
+  stra = []
+  strb = []
+  strc = []
+  fa = open(allcycle_a, 'r')
+  fb = open(allcycle_b, 'r')
+  fc = open(allcycle_c, 'w')
+  for line in fa.readlines():
+    stra.append(line.replace("\n", ''))
+  for line in fb.readlines():
+    strb.append(line.replace("\n", ''))
+  for j in strb:
+    if j not in stra:
+      strc.append(j)
+  for i in strc:
+    fc.write(i + "\n")
+  fa.close()
+  fb.close()
+  fc.close()
+  os.system("crontab -l|grep pmonitor.py >> {0}".format(crontab_opvis_c))
+  with open(allcycle_c, "r") as fd:
+    lines = fd.readlines()
+    for i in lines:
+      i = "cycle=" + i.split(":")[1].strip(" ")
+      cron_cmd = "* " + "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n") + " * * * python " + pmonitorDir + " " + str(i)
       with open(crontab_opvis_c, "a") as fd:
         fd.write(cron_cmd)
         fd.write("\n")
@@ -388,10 +464,11 @@ def main():
     dic = json.loads(data)
     logging.info("Change data to dict: " + str(dic))
 
-# 如果收到的是flask传过来的内容，dic里面肯定有pstatus
+# 如果收到的是flask传过来的内容
     if "pstatus" in dic:
       #pstatus = dic["pstatus"]
-      gen_Cron_later()
+      # gen_Cron_later()
+      get_New_cycle()
       os.remove(allcycle_a)
       os.rename(allcycle_b, allcycle_a)
       os.remove(allcycle_c)
