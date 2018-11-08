@@ -13,7 +13,7 @@ import urllib2
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
-LOG_FILE = "/home/opvis/opvis_agent/agent_service/log/update.log"
+LOG_FILE = "/home/opvis/utils/log/update.log"
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 fh = TimedRotatingFileHandler(LOG_FILE, when='D', interval=1, backupCount=30)
@@ -23,7 +23,7 @@ formatter = logging.Formatter(format_str, datefmt)
 fh.setFormatter(formatter)
 logger.addHandler(fh)
 
-plugin_dir = "/home/opvis/opvis_agent/agent_service/plugin/"
+plugin_dir = "/home/opvis/utils/plugin/"
 if not os.path.exists(plugin_dir):
   os.mkdir(plugin_dir)
 dirs = os.listdir(plugin_dir)
@@ -121,7 +121,7 @@ def doPlugin():
         try:
           logging.info("Plugin not exists, download plugin successfully: " + str(file_name))
           logging.info("Period excute plugin: " + str(file_name) + str(cycle))
-          cron_dir = "/home/opvis/opvis_agent/agent_service/cron/" + str(file_name.split(".")[0])
+          cron_dir = "/home/opvis/utils/cron/" + str(file_name.split(".")[0])
           f = open(cron_dir, "w")
           f.write("%s python %s\n" % (cycle, plugin_dir1))
           f.close()
@@ -160,7 +160,7 @@ def doPlugin():
     else:
       logging.info("Plugin not exists and doplugin: " + str(file_name))
       try:
-        cron_dir = "/home/opvis/opvis_agent/agent_service/cron/" + str(file_name.split(".")[0])
+        cron_dir = "/home/opvis/utils/cron/" + str(file_name.split(".")[0])
         f = open(cron_dir, "w")
         f.write("%s python %s\n" % (cycle, plugin_dir1))
         f.close()
