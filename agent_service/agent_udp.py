@@ -169,7 +169,7 @@ def check_version():
           send_to_server = result
           udpsocket.sendto(send_to_server, address)
           udpsocket.close()
-          time.sleep(float(240))  # 位置
+      time.sleep(float(240))  # 位置
   except Exception as e:
     logging.info("Upgrade agent error: " + str(e))
 
@@ -402,7 +402,7 @@ def gen_Cron_later_minute():
     fa.close()
     fb.close()
     fc.close()
-    os.system("crontab -l >> {0}".format(crontab_opvis_b))
+    os.system("crontab -l > {0}".format(crontab_opvis_b))
     with open(allcycle_c, "r") as fd:
       lines = fd.readlines()
       for i in lines:
@@ -436,7 +436,7 @@ def gen_Cron_later_hour():
     fa.close()
     fb.close()
     fc.close()
-    os.system("crontab -l >> {0}".format(crontab_opvis_b))
+    os.system("crontab -l > {0}".format(crontab_opvis_b))
     with open(allcycle_c, "r") as fd:
       lines = fd.readlines()
       for i in lines:
