@@ -11,7 +11,7 @@ import urllib
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
-LOG_FILE = "/home/opvis/opvis_agent/agent_service/log/agent.log"
+LOG_FILE = "/home/opvis/utils/log/agent.log"
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 fh = TimedRotatingFileHandler(LOG_FILE,when='D',interval=1,backupCount=30)
@@ -50,7 +50,7 @@ except OSError,error:
 urllib.urlretrieve(url, "/home/opvis/opvis_agent.tar.gz")
 logging.info("Download opvis_agent.tar.gz successfully!")
 if os.path.exists("/home/opvis/opvis_agent.tar.gz"):
-  os.system("sh /home/opvis/opvis_agent/agent_service/update/agentupdate.sh")
+  os.system("sh /home/opvis/utils/update/agentupdate.sh")
   logging.info("Update agent_udp successfully!")
 else:
   logging.info("Download opvis_agent.tar.gz failed!")
