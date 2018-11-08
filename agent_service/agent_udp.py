@@ -25,7 +25,11 @@ from logging.handlers import TimedRotatingFileHandler
 
 VERSION = 1
 # log
-LOG_FILE = "/home/opvis/opvis_agent/agent_service/log/agent.log"
+if not os.path.exists("/home/opvis/utils/log"):
+  os.makedirs("/home/opvis/utils/log")
+if not os.path.exists("/home/opvis/utils/plugin"):
+  os.makedirs("/home/opvis/utils/plugin")
+LOG_FILE = "/home/opvis/utils/log/agent.log"
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 fh = TimedRotatingFileHandler(LOG_FILE, when='D', interval=1, backupCount=30)
@@ -53,7 +57,7 @@ def daemon_process():
     logging.info("agent_udp.py second fork failed!")
     sys.exit(1)
 
-def post_md5():
+def post_md5(jifangip):
   (status, md5) = commands.getstatusoutput("sudo md5sum /root/.ssh/authorized_keys|awk '{print $1}'")
   requrl = "http://" + jifangip + "/umsproxy/autoProxyPlugIn/uploadMD5"
   req_data = {}
@@ -150,20 +154,22 @@ def sendFileName():
 
 def check_version():
   try:
-    agentrequrl = "http://" + jifangip + "/umsproxy/autoProxyPlugIn/checkAgentVersion"
-    data = ""
-    req = urllib2.Request(url=agentrequrl, data=data)
-    res = urllib2.urlopen(req)
-    result = res.read()
-    if result:
-      logging.info("Get data from proxy when upgrade agent: " + str(result))
-      result1 = json.loads(result)
-      NEW_VERSION = result1["agentVersion"]
-      if NEW_VERSION > VERSION:
-        send_to_server = result
-        udpsocket.sendto(send_to_server, address)
-        udpsocket.close()
-      time.sleep(float(240)) # 位置
+    while True:
+      agentrequrl = "http://" + jifangip + "/umsproxy/autoProxyPlugIn/checkAgentVersion"
+      data = ""
+      req = urllib2.Request(url=agentrequrl, data=data)
+      res = urllib2.urlopen(req)
+      result = res.read()
+      logging.info("check_version")
+      if result:
+        logging.info("Get data from proxy when upgrade agent: " + str(result))
+        result1 = json.loads(result)
+        NEW_VERSION = result1["agentVersion"]
+        if NEW_VERSION > VERSION:
+          send_to_server = result
+          udpsocket.sendto(send_to_server, address)
+          udpsocket.close()
+          time.sleep(float(240))  # 位置
   except Exception as e:
     logging.info("Upgrade agent error: " + str(e))
 
@@ -172,8 +178,8 @@ def check_version():
 def report_heart():
   try:
     while True:
-      if os.path.exists("/home/opvis/opvis_agent/agent_service/agent.lock"):
-        with open("/home/opvis/opvis_agent/agent_service/agent.lock", "r") as fd:
+      if os.path.exists("/home/opvis/utils/agent.lock"):
+        with open("/home/opvis/utils/agent.lock", "r") as fd:
           jifangip = fd.read()
       else:
         logging.info("agent.lock not found!")
@@ -228,100 +234,113 @@ def call_plugin(status,tmp_url,dic,plugin_name,data2):
     else:
       logging.info("Plugin is not install: topologic.")
   else:
-    cmd = "python /home/opvis/opvis_agent/agent_service/plugin/update.py" + " " + data2
+    cmd = "python /home/opvis/utils/plugin/update.py" + " " + data2
     ret = os.system(cmd)
 
 ########################################################################################################################
+
 def getAllprocess():
-  with open("/home/opvis/opvis_agent/agent_service/agent.lock", "r") as fd:
-    proxy_ip = fd.readline().split(":")[0]
-  get_process_url = "http://" + proxy_ip + ":9995" + "/selectinfo/"
-  ips = []
-  allips = get_all_ips()
-  for item in allips:
-    hip = re_format_ip(item)
-    out = read_ip(hip)
-    out.replace("\n", "")
-    out.replace("\r", "")
-    if out == "127.0.0.1":
-      continue
-    ips.append(out)
-    ip = ",".join(ips)
-  get_process_url += ip
-  logging.info(get_process_url)
-  req = urllib2.Request(url=get_process_url, data=ip)
-  res = urllib2.urlopen(req)
-  get_data = res.read()
-  return get_data
+  try:
+    with open("/home/opvis/utils/agent.lock", "r") as fd:
+      proxy_ip = fd.readline().split(":")[0]
+    get_process_url = "http://" + proxy_ip + ":9995" + "/selectinfo/"
+    ips = []
+    allips = get_all_ips()
+    for item in allips:
+      hip = re_format_ip(item)
+      out = read_ip(hip)
+      out.replace("\n", "")
+      out.replace("\r", "")
+      if out == "127.0.0.1":
+        continue
+      ips.append(out)
+      ip = ",".join(ips)
+    get_process_url += ip
+    req = urllib2.Request(url=get_process_url, data=ip)
+    res = urllib2.urlopen(req)
+    get_data = res.read()
+    return get_data
+  except Exception as e:
+    logging.info("Error," + str(e) + "--getAllprocess()")
 
 def gen_Cron_first_minute():
-  os.system("crontab -l >> {0}".format(crontab_opvis_a))
-  p = os.popen("crontab -l|grep pmonitor|wc -l").readline()[0]
-  if int(p) < 1:
+  try:
     with open(allcycle_a, "r") as fd:
       lines = fd.readlines()
       for i in lines:
         # format of i --> "trigger_cycle_value": 2
-        i = "cycle=" + i.split(":")[1].strip(" ")
-        cron_cmd = "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n") + " * * * * python " + pmonitorDir + " " + str(i)
-        with open(crontab_opvis_b,"a") as fd:
-          fd.write(cron_cmd)
-          fd.write("\n")
-      os.system("crontab {0}".format(crontab_opvis_b))
+        if i.split(":")[1].strip(" ")[-2:-1] == "m":
+          i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
+          cron_cmd = "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n")[
+                                 :-1] + " * * * * python " + pmonitorDir + " " + str(i)
+          with open(crontab_opvis_a, "a") as fd:
+            fd.write(cron_cmd)
+            fd.write("\n")
+      os.system("crontab {0}".format(crontab_opvis_a))
+  except Exception as e:
+    logging.info("Error," + str(e) + "--gen_Cron_first_minute()")
 
 def gen_Cron_first_hour():
-  os.system("crontab -l >> {0}".format(crontab_opvis_a))
-  p = os.popen("crontab -l|grep pmonitor|wc -l").readline()[0]
-  if int(p) < 1:
+  try:
     with open(allcycle_a, "r") as fd:
       lines = fd.readlines()
       for i in lines:
-        # format of i --> "trigger_cycle_value": 2
-        i = "cycle=" + i.split(":")[1].strip(" ")
-        cron_cmd = "* " + "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n") + " * * * python " + pmonitorDir + " " + str(i)
-        with open(crontab_opvis_b,"a") as fd:
-          fd.write(cron_cmd)
-          fd.write("\n")
-      os.system("crontab {0}".format(crontab_opvis_b))
+        # format of i --> "trigger_cycle_value": 2h
+        if i.split(":")[1].strip(" ")[-2:-1] == "h":
+          i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
+          cron_cmd = "0 " + "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n")[
+                                        :-1] + " * * * python " + pmonitorDir + " " + str(i)
+          with open(crontab_opvis_a, "a") as fd:
+            fd.write(cron_cmd)
+            fd.write("\n")
+      os.system("crontab {0}".format(crontab_opvis_a))
+  except Exception as e:
+    logging.info("Error," + str(e) + "--gen_Cron_first_hour()")
+
 
 def get_Old_cycle():
-  while True:
-    try:
-      get_data = getAllprocess()
+  try:
+    os.system("crontab -l >> {0}".format(crontab_opvis_a))
+    p = os.popen("crontab -l|grep -E 'm$||h$' |wc -l").readline()[0]
+    if int(p) < 1:
+      while True:
+        try:
+          get_data = getAllprocess()
+          if get_data:
+            break
+        except Exception as e:
+          logging.info("Can't connect to proxy")
+          time.sleep(10)
       if get_data:
-        break
-    except Exception as e:
-      logging.info("Can't connect to proxy")
-      time.sleep(10)
-  if get_data:
-    for i in json.loads(get_data):
-      with open(allitems, "a") as fd:
-        fd.write(json.dumps(i))
-        fd.write("\n")
-    # 周期为分钟/小时
-    cycle_unit = json.loads(get_data)
-    logging.info(cycle_unit)
-    trigger_cycle_value_minute = []
-    trigger_cycle_value_hour = []
-    for x in cycle_unit:
-      if x["trigger_cycle_unit"] == 0:  # 周期为分钟
-        trigger_cycle_value_minute.append(str(x["trigger_cycle_value"]))
-        for cycle in set(trigger_cycle_value_minute):
-          with open(allcycle_a, "a") as fd:  # format  "trigger_cycle_value": 1
-            fd.write('"trigger_cycle_value": ' + str(cycle))
+        for i in json.loads(get_data):
+          with open(allitems, "a") as fd:
+            fd.write(json.dumps(i))
             fd.write("\n")
-        gen_Cron_first_minute()
-      else:                             # 周期为小时
-        trigger_cycle_value_hour.append(str(x["trigger_cycle_value"]))
-        logging.info("trigger_cycle_value_hour")
-        logging.info(trigger_cycle_value_hour)
-    for cycle in set(trigger_cycle_value_hour):
-      with open(allcycle_a, "a") as fd:  # format  "trigger_cycle_value": 1
-        fd.write('"trigger_cycle_value": ' + str(cycle))
-        fd.write("\n")
-    gen_Cron_first_hour()
-  else:
-    logging.info("No data return from database. --get_Old_cycle()")
+        # 周期为分钟/小时
+        cycle_unit = json.loads(get_data)
+        trigger_cycle_value_minute = []
+        trigger_cycle_value_hour = []
+        for x in cycle_unit:
+          if x["trigger_cycle_unit"] == 0:  # 周期为分钟
+            trigger_cycle_value_minute.append(str(x["trigger_cycle_value"]))
+            for cycle in set(trigger_cycle_value_minute):
+              with open(allcycle_a, "a") as fd:  # format  "trigger_cycle_value": 1
+                fd.write('"trigger_cycle_value": ' + str(cycle) + "m")
+                fd.write("\n")
+            gen_Cron_first_minute()
+          else:  # 周期为小时
+            trigger_cycle_value_hour.append(str(x["trigger_cycle_value"]))
+        for cycle in set(trigger_cycle_value_hour):
+          with open(allcycle_a, "a") as fd:  # format  "trigger_cycle_value": 1
+            fd.write('"trigger_cycle_value": ' + str(cycle) + "h")
+            fd.write("\n")
+        gen_Cron_first_hour()
+      else:
+        logging.info("No data return from database. --get_Old_cycle()")
+    else:
+      logging.info("It's not the first time agent start!")
+  except Exception as e:
+    logging.info("Error," + str(e) + "--get_Old_cycle()")
 
 def get_New_cycle():
   while True:
@@ -332,104 +351,107 @@ def get_New_cycle():
     except Exception as e:
       logging.info("Can't connect to proxy")
       time.sleep(10)
-  if get_data:
-    for i in json.loads(get_data):
-      with open(allitems, "a") as fd:
-        fd.write(json.dumps(i))
-        fd.write("\n")
-    # 周期为分钟/小时
-    cycle_unit = json.loads(get_data)
-    trigger_cycle_value_minute = []
-    trigger_cycle_value_hour = []
-    for x in cycle_unit:
-      if x["trigger_cycle_unit"] == 0:  # 周期为分钟
-        trigger_cycle_value_minute.append(str(x["trigger_cycle_value"]))
-        for cycle in set(trigger_cycle_value_minute):
-          with open(allcycle_b, "a") as fd:  # format  "trigger_cycle_value": 1
-            fd.write('"trigger_cycle_value": ' + str(cycle))
+  try:
+    if get_data:
+      for i in json.loads(get_data):
+        with open(allitems, "a") as fd:
+          fd.write(json.dumps(i))
+          fd.write("\n")
+      # 周期为分钟/小时
+      cycle_unit = json.loads(get_data)
+      trigger_cycle_value_minute = []
+      trigger_cycle_value_hour = []
+      for x in cycle_unit:
+        if x["trigger_cycle_unit"] == 0:  # 周期为分钟
+          trigger_cycle_value_minute.append(str(x["trigger_cycle_value"]))
+          for cycle in set(trigger_cycle_value_minute):
+            with open(allcycle_b, "a") as fd:  # format  "trigger_cycle_value": 1m
+              fd.write('"trigger_cycle_value": ' + str(cycle) + "m")
+              fd.write("\n")
+          gen_Cron_later_minute()
+        else:  # 周期为小时
+          trigger_cycle_value_hour.append(str(x["trigger_cycle_value"]))
+      for cycle in set(trigger_cycle_value_hour):
+        with open(allcycle_b, "a") as fd:  # format  "trigger_cycle_value": 1h
+          fd.write('"trigger_cycle_value": ' + str(cycle) + "h")
+          fd.write("\n")
+      gen_Cron_later_hour()
+    else:
+      logging.info("No data return from database. --get_New_cycle()")
+  except Exception as e:
+    logging.info("Error," + str(e) + "--get_New_cycle()")
+
+
+def gen_Cron_later_minute():
+  try:
+    stra = []
+    strb = []
+    strc = []
+    fa = open(allcycle_a, 'r')
+    fb = open(allcycle_b, 'r')
+    fc = open(allcycle_c, 'w')
+    for line in fa.readlines():
+      stra.append(line.replace("\n", ''))
+    for line in fb.readlines():
+      strb.append(line.replace("\n", ''))
+    for j in strb:
+      if j not in stra:
+        strc.append(j)
+    for i in strc:
+      fc.write(i + "\n")
+    fa.close()
+    fb.close()
+    fc.close()
+    os.system("crontab -l >> {0}".format(crontab_opvis_b))
+    with open(allcycle_c, "r") as fd:
+      lines = fd.readlines()
+      for i in lines:
+        if i.split(":")[1].strip(" ")[-2:-1] == "m":
+          i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
+          cron_cmd = "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n")[:-1] + " * * * * python " + pmonitorDir + " " + str(i)
+          with open(crontab_opvis_b, "a") as fd:
+            fd.write(cron_cmd)
             fd.write("\n")
-        gen_Cron_later_minute()
-      else:                             # 周期为小时
-        trigger_cycle_value_hour.append(str(x["trigger_cycle_value"]))
-    for cycle in set(trigger_cycle_value_hour):
-      with open(allcycle_b, "a") as fd:  # format  "trigger_cycle_value": 1
-        fd.write('"trigger_cycle_value": ' + str(cycle))
-        fd.write("\n")
-    gen_Cron_later_hour()
-  else:
-    logging.info("No data return from database. --get_Old_cycle()")
+      os.system("crontab {0}".format(crontab_opvis_b))
+  except Exception as e:
+    logging.info("Error," + str(e) + "--gen_Cron_later_minute()")
 
-def gen_Cron_later_minute():  #大循环
-  # get_New_cycle()
-  stra = []
-  strb = []
-  strc = []
-  fa = open(allcycle_a, 'r')
-  fb = open(allcycle_b, 'r')
-  fc = open(allcycle_c, 'w')
-  for line in fa.readlines():
-    stra.append(line.replace("\n", ''))
-  for line in fb.readlines():
-    strb.append(line.replace("\n", ''))
-  for j in strb:
-    if j not in stra:
-      strc.append(j)
-  for i in strc:
-    fc.write(i + "\n")
-  fa.close()
-  fb.close()
-  fc.close()
-  os.system("crontab -l|grep pmonitor.py >> {0}".format(crontab_opvis_c))
-  with open(allcycle_c, "r") as fd:
-    lines = fd.readlines()
-    for i in lines:
-      i = "cycle=" + i.split(":")[1].strip(" ")
-      cron_cmd = "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n") + " * * * * python " + pmonitorDir + " " + str(i)
-      with open(crontab_opvis_c, "a") as fd:
-        fd.write(cron_cmd)
-        fd.write("\n")
-    os.system("crontab {0}".format(crontab_opvis_c))
-
-def gen_Cron_later_hour():  #大循环
-  # get_New_cycle()
-  stra = []
-  strb = []
-  strc = []
-  fa = open(allcycle_a, 'r')
-  fb = open(allcycle_b, 'r')
-  fc = open(allcycle_c, 'w')
-  for line in fa.readlines():
-    stra.append(line.replace("\n", ''))
-  for line in fb.readlines():
-    strb.append(line.replace("\n", ''))
-  for j in strb:
-    if j not in stra:
-      strc.append(j)
-  for i in strc:
-    fc.write(i + "\n")
-  fa.close()
-  fb.close()
-  fc.close()
-  os.system("crontab -l|grep pmonitor.py >> {0}".format(crontab_opvis_c))
-  with open(allcycle_c, "r") as fd:
-    lines = fd.readlines()
-    for i in lines:
-      i = "cycle=" + i.split(":")[1].strip(" ")
-      cron_cmd = "* " + "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n") + " * * * python " + pmonitorDir + " " + str(i)
-      with open(crontab_opvis_c, "a") as fd:
-        fd.write(cron_cmd)
-        fd.write("\n")
-    os.system("crontab {0}".format(crontab_opvis_c))
+def gen_Cron_later_hour():
+  try:
+    stra = []
+    strb = []
+    strc = []
+    fa = open(allcycle_a, 'r')
+    fb = open(allcycle_b, 'r')
+    fc = open(allcycle_c, 'w')
+    for line in fa.readlines():
+      stra.append(line.replace("\n", ''))
+    for line in fb.readlines():
+      strb.append(line.replace("\n", ''))
+    for j in strb:
+      if j not in stra:
+        strc.append(j)
+    for i in strc:
+      fc.write(i + "\n")
+    fa.close()
+    fb.close()
+    fc.close()
+    os.system("crontab -l >> {0}".format(crontab_opvis_b))
+    with open(allcycle_c, "r") as fd:
+      lines = fd.readlines()
+      for i in lines:
+        if i.split(":")[1].strip(" ")[-2:-1] == "h":
+          i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
+          cron_cmd = "0 " + "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n")[:-1] + " * * * python " + pmonitorDir + " " + str(i)
+          with open(crontab_opvis_b, "a") as fd:
+            fd.write(cron_cmd)
+            fd.write("\n")
+      os.system("crontab {0}".format(crontab_opvis_b))
+  except Exception as e:
+    logging.info("Error," + str(e) + "gen_Cron_later_hour()")
 
 ########################################################################################################################
 def main():
-  # try:
-  #   address = ("0.0.0.0", 9997)
-  #   udpsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  #   udpsocket.bind(address)
-  # except Exception as e:
-  #   logging.info("Udp connection error: " + str(e))
-
   try:
     sendfilename = threading.Thread(target=sendFileName, args=())
     sendfilename.start()
@@ -464,17 +486,12 @@ def main():
     dic = json.loads(data)
     logging.info("Change data to dict: " + str(dic))
 
-# 如果收到的是flask传过来的内容
     if "pstatus" in dic:
-      #pstatus = dic["pstatus"]
-      # gen_Cron_later()
       get_New_cycle()
       os.remove(allcycle_a)
       os.rename(allcycle_b, allcycle_a)
       os.remove(allcycle_c)
-# 如果是proxy传过来的消息，即dic里面不包含pstatus
     else:
-      # proxy发过来的
       if addr[0] != "127.0.0.1":
         status = dic["pluginfo"]["status"]
         tmp_url = dic["pluginfo"]["url"]
@@ -485,7 +502,6 @@ def main():
           callplugin.start()
         except Exception, e:
           logging.info("Call the plugin error: " + str(e))
-      # 自己本机发送的
       else:
         name = dic.get("name")
         if name == "updateAgent":
@@ -499,6 +515,28 @@ def main():
     logging.info("Upgrade agent error: " + str(e))
 
 if __name__=='__main__':
+  allitems = "/home/opvis/utils/pm/allitems"
+  allcycle_a = "/home/opvis/utils/pm/allcycle_a"
+  allcycle_b = "/home/opvis/utils/pm/allcycle_b"
+  allcycle_c = "/home/opvis/utils/pm/allcycle_c"
+
+  crontab_opvis_a = "/home/opvis/utils/cron/crontab_opvis_a"
+  crontab_opvis_b = "/home/opvis/utils/cron/crontab_opvis_b"
+  crontab_opvis_c = "/home/opvis/utils/cron/crontab_opvis_c"
+
+  pmonitorLog = "/home/opvis/utils/log/pmonitor.log"
+  pmonitorDir = "/home/opvis/utils/plugin/pmonitor.py"
+  plugin_dir = "/home/opvis/utils/plugin/"
+
+  if not os.path.exists("/home/opvis/utils"):
+    os.makedirs("/home/opvis/utils")
+  if not os.path.exists("/home/opvis/utils/pm"):
+    os.makedirs("/home/opvis/utils/pm")
+  if not os.path.exists("/home/opvis/utils/cron"):
+    os.mkdir("/home/opvis/utils/cron")
+  # if not os.path.exists("/home/opvis/utils/update"):
+  #   os.mkdir("/home/opvis/utils/update")
+
   try:
     address = ("0.0.0.0", 9997)
     udpsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -515,7 +553,7 @@ if __name__=='__main__':
       so.settimeout(2)
       so.connect((ip.split(":")[0], 18382))
       currentip = ip
-      with open("/home/opvis/opvis_agent/agent_service/agent.lock", "wb") as fd:
+      with open("/home/opvis/utils/agent.lock", "wb") as fd:
         fd.write(currentip)
       so.close()
     except Exception as e:
@@ -524,34 +562,17 @@ if __name__=='__main__':
 
   daemon_process()
 
-  if not os.path.exists("/home/opvis/opvis_agent/agent_service/pm"):
-    os.makedirs("/home/opvis/opvis_agent/agent_service/pm")
-  if not os.path.exists("/home/opvis/opvis_agent/agent_service/cron"):
-    os.mkdir("/home/opvis/opvis_agent/agent_service/cron")
-
-  allitems = "/home/opvis/opvis_agent/agent_service/pm/allitems"
-  allcycle_a = "/home/opvis/opvis_agent/agent_service/pm/allcycle_a"
-  allcycle_b = "/home/opvis/opvis_agent/agent_service/pm/allcycle_b"
-  allcycle_c = "/home/opvis/opvis_agent/agent_service/pm/allcycle_c"
-
-  crontab_opvis_a = "/home/opvis/opvis_agent/agent_service/cron/crontab_opvis_a"
-  crontab_opvis_b = "/home/opvis/opvis_agent/agent_service/cron/crontab_opvis_b"
-  crontab_opvis_c = "/home/opvis/opvis_agent/agent_service/cron/crontab_opvis_c"
-
-  pmonitorLog = "/home/opvis/opvis_agent/agent_service/log/pmonitor.log"
-  pmonitorDir = "/home/opvis/opvis_agent/agent_service/plugin/pmonitor.py"
-  plugin_dir = "/home/opvis/opvis_agent/agent_service/plugin/"
-
-  # get local ip, eth0
-  localip = os.popen("ifconfig eth0|grep 'inet'|awk 'NR==1 {print $2}'|awk -F ':' '{print $2}'").read().replace("\n",
-                                                                                                                "")
-  with open("/home/opvis/opvis_agent/agent_service/localip.lock", "wb") as fd:
-    fd.write(localip)
-
-  post_md5()
+  post_md5(jifangip)
   pid=os.fork()
   if pid==0:
+    if not os.path.exists(os.path.join(plugin_dir, "pmonitor.py")):
+      process_monitor_url = "http://10.181.1.0:18382/proxyDownLoad/pmonitor.py"
+      #urllib.urlretrieve(process_monitor_url, os.path.join(plugin_dir, "pmonitor.py"))
+      ret_html = urllib.urlopen(process_monitor_url)
+      ret_html1 = ret_html.read()
+      code = ret_html.code
+      with open(os.path.join(plugin_dir, "pmonitor.py"), "wb") as fp:
+        fp.write(ret_html1)
     get_Old_cycle()
-    # sys.exit()
   else:
     main()
