@@ -300,7 +300,7 @@ def gen_Cron_first_hour():
 
 def get_Old_cycle():
   try:
-    os.system("crontab -l >> {0}".format(crontab_opvis_a))
+    os.system("crontab -l > {0}".format(crontab_opvis_a))
     p = os.popen("crontab -l|grep -E 'm$||h$' |wc -l").readline()[0]
     if int(p) < 1:
       while True:
@@ -323,13 +323,15 @@ def get_Old_cycle():
         for x in cycle_unit:
           if x["trigger_cycle_unit"] == 0:  # 周期为分钟
             trigger_cycle_value_minute.append(str(x["trigger_cycle_value"]))
-            for cycle in set(trigger_cycle_value_minute):
-              with open(allcycle_a, "a") as fd:  # format  "trigger_cycle_value": 1
-                fd.write('"trigger_cycle_value": ' + str(cycle) + "m")
-                fd.write("\n")
-            gen_Cron_first_minute()
           else:  # 周期为小时
             trigger_cycle_value_hour.append(str(x["trigger_cycle_value"]))
+
+        for cycle in set(trigger_cycle_value_minute):
+          with open(allcycle_a, "a") as fd:  # format  "trigger_cycle_value": 1
+            fd.write('"trigger_cycle_value": ' + str(cycle) + "m")
+            fd.write("\n")
+        gen_Cron_first_minute()
+
         for cycle in set(trigger_cycle_value_hour):
           with open(allcycle_a, "a") as fd:  # format  "trigger_cycle_value": 1
             fd.write('"trigger_cycle_value": ' + str(cycle) + "h")
@@ -353,6 +355,7 @@ def get_New_cycle():
       time.sleep(10)
   try:
     if get_data:
+      os.remove(allitems)
       for i in json.loads(get_data):
         with open(allitems, "a") as fd:
           fd.write(json.dumps(i))
@@ -364,13 +367,15 @@ def get_New_cycle():
       for x in cycle_unit:
         if x["trigger_cycle_unit"] == 0:  # 周期为分钟
           trigger_cycle_value_minute.append(str(x["trigger_cycle_value"]))
-          for cycle in set(trigger_cycle_value_minute):
-            with open(allcycle_b, "a") as fd:  # format  "trigger_cycle_value": 1m
-              fd.write('"trigger_cycle_value": ' + str(cycle) + "m")
-              fd.write("\n")
-          gen_Cron_later_minute()
         else:  # 周期为小时
           trigger_cycle_value_hour.append(str(x["trigger_cycle_value"]))
+
+      for cycle in set(trigger_cycle_value_minute):
+        with open(allcycle_b, "a") as fd:  # format  "trigger_cycle_value": 1m
+          fd.write('"trigger_cycle_value": ' + str(cycle) + "m")
+          fd.write("\n")
+      gen_Cron_later_minute()
+
       for cycle in set(trigger_cycle_value_hour):
         with open(allcycle_b, "a") as fd:  # format  "trigger_cycle_value": 1h
           fd.write('"trigger_cycle_value": ' + str(cycle) + "h")
