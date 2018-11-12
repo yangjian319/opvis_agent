@@ -44,7 +44,6 @@ def fun():
         if int(j["trigger_cycle_unit"]) != 0 and int(j["trigger_cycle_value"]) == int(arg_number):
           lh.append(j)
   if lm and arg_time == "m":
-    logging.info("执行分钟的")
     check_process(lm)
   if lh and arg_time == "h":
     check_process(lh)
