@@ -6,6 +6,7 @@
 
 import os
 import sys
+import time
 import json
 import urllib
 import urllib2
@@ -95,6 +96,7 @@ def check_process(ll):
             break
         except Exception as e:
           logging.info("Storeinfo error. " + str(e))
+          time.sleep(10)
     else:
       while True:
         try:
@@ -124,4 +126,5 @@ def check_process(ll):
             break
         except Exception as e:
           logging.info("Storeinfo error. " + str(e))
+          time.sleep(10)
 fun()
