@@ -67,55 +67,61 @@ def check_process(ll):
     count_new = os.popen("ps aux|grep %s|grep -v grep|wc -l" % key_word).readline()[0]
     current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if int(count_new) < int(trigger_value):
-      try:
-        upload_data = {}
-        upload_data["id"] = id
-        upload_data["biz_ip"] = biz_ip
-        upload_data["manage_ip"] = manage_ip
-        upload_data["process_name"] = process_name
-        upload_data["key_word"] = key_word
-        upload_data["trigger_compare"] = trigger_compare
-        upload_data["trigger_value"] = trigger_value
-        upload_data["trigger_level"] = trigger_level
-        upload_data["trigger_cycle_value"] = trigger_cycle_value
-        upload_data["trigger_cycle_unit"] = trigger_cycle_unit
-        upload_data["should_be"] = trigger_value
-        upload_data["new_count"] = count_new
-        upload_data["current_time"] = current_time
-        upload_data = urllib.urlencode(upload_data)
-        req = urllib2.Request(url=get_process_url, data=upload_data)
-        res = urllib2.urlopen(req)
-        get_data = res.read()
-        if get_data == "ok":
-          logging.info("process is less than original!" + " process name is: " + str(key_word) + " " + " machine ip is: " + str(biz_ip))
-        else:
-          logging.info(get_data)
-      except Exception as e:
-        logging.info("Storeinfo error. " + str(e))
+      while True:
+        try:
+          upload_data = {}
+          upload_data["id"] = id
+          upload_data["biz_ip"] = biz_ip
+          upload_data["manage_ip"] = manage_ip
+          upload_data["process_name"] = process_name
+          upload_data["key_word"] = key_word
+          upload_data["trigger_compare"] = trigger_compare
+          upload_data["trigger_value"] = trigger_value
+          upload_data["trigger_level"] = trigger_level
+          upload_data["trigger_cycle_value"] = trigger_cycle_value
+          upload_data["trigger_cycle_unit"] = trigger_cycle_unit
+          upload_data["should_be"] = trigger_value
+          upload_data["new_count"] = count_new
+          upload_data["current_time"] = current_time
+          upload_data = urllib.urlencode(upload_data)
+          req = urllib2.Request(url=get_process_url, data=upload_data)
+          res = urllib2.urlopen(req)
+          get_data = res.read()
+          if get_data == "ok":
+            logging.info("process is less than original!" + " process name is: " + str(key_word) + " " + " machine ip is: " + str(biz_ip))
+            break
+          else:
+            logging.info(get_data)
+            break
+        except Exception as e:
+          logging.info("Storeinfo error. " + str(e))
     else:
-      try:
-        upload_data = {}
-        upload_data["id"] = id
-        upload_data["biz_ip"] = biz_ip
-        upload_data["manage_ip"] = manage_ip
-        upload_data["process_name"] = process_name
-        upload_data["key_word"] = key_word
-        upload_data["trigger_compare"] = trigger_compare
-        upload_data["trigger_value"] = trigger_value
-        upload_data["trigger_level"] = trigger_level
-        upload_data["trigger_cycle_value"] = trigger_cycle_value
-        upload_data["trigger_cycle_unit"] = trigger_cycle_unit
-        upload_data["should_be"] = trigger_value
-        upload_data["new_count"] = count_new
-        upload_data["current_time"] = current_time
-        upload_data = urllib.urlencode(upload_data)
-        req = urllib2.Request(url=get_process_url, data=upload_data)
-        res = urllib2.urlopen(req,timeout=70)
-        get_data = res.read()
-        if get_data == "ok":
-          logging.info("process monitor is ok！" + " process name is: " + str(key_word) + " " + " machine ip is: " + str(biz_ip))
-        else:
-          logging.info(get_data)
-      except Exception as e:
-        logging.info("Storeinfo error. " + str(e))
+      while True:
+        try:
+          upload_data = {}
+          upload_data["id"] = id
+          upload_data["biz_ip"] = biz_ip
+          upload_data["manage_ip"] = manage_ip
+          upload_data["process_name"] = process_name
+          upload_data["key_word"] = key_word
+          upload_data["trigger_compare"] = trigger_compare
+          upload_data["trigger_value"] = trigger_value
+          upload_data["trigger_level"] = trigger_level
+          upload_data["trigger_cycle_value"] = trigger_cycle_value
+          upload_data["trigger_cycle_unit"] = trigger_cycle_unit
+          upload_data["should_be"] = trigger_value
+          upload_data["new_count"] = count_new
+          upload_data["current_time"] = current_time
+          upload_data = urllib.urlencode(upload_data)
+          req = urllib2.Request(url=get_process_url, data=upload_data)
+          res = urllib2.urlopen(req, timeout=70)
+          get_data = res.read()
+          if get_data == "ok":
+            logging.info("process monitor is ok！" + " process name is: " + str(key_word) + " " + " machine ip is: " + str(biz_ip))
+            break
+          else:
+            logging.info(get_data)
+            break
+        except Exception as e:
+          logging.info("Storeinfo error. " + str(e))
 fun()
