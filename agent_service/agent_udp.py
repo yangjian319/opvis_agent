@@ -169,7 +169,7 @@ def check_version():
           send_to_server = result
           udpsocket.sendto(send_to_server, address)
           udpsocket.close()
-      time.sleep(float(240))  # 位置
+      time.sleep(float(240))
   except Exception as e:
     logging.info("Upgrade agent error: " + str(e))
 
@@ -236,8 +236,6 @@ def call_plugin(status,tmp_url,dic,plugin_name,data2):
   else:
     cmd = "python /home/opvis/utils/plugin/update.py" + " " + data2
     ret = os.system(cmd)
-
-########################################################################################################################
 
 def getAllprocess():
   try:
@@ -455,7 +453,6 @@ def gen_Cron_later_hour():
   except Exception as e:
     logging.info("Error," + str(e) + "gen_Cron_later_hour()")
 
-########################################################################################################################
 def main():
   try:
     sendfilename = threading.Thread(target=sendFileName, args=())
@@ -539,8 +536,6 @@ if __name__=='__main__':
     os.makedirs("/home/opvis/utils/pm")
   if not os.path.exists("/home/opvis/utils/cron"):
     os.mkdir("/home/opvis/utils/cron")
-  # if not os.path.exists("/home/opvis/utils/update"):
-  #   os.mkdir("/home/opvis/utils/update")
 
   try:
     address = ("0.0.0.0", 9997)
