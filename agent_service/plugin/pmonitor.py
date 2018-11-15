@@ -100,12 +100,12 @@ def check_process(ll):
             break
           else:
             logging.info(get_data)
-            if (b-a) > 5:
-              logging.info("up to 5s")
+            if (b-a) > time_out:
               break
         except Exception as e:
           logging.info("Storeinfo error. " + str(e))
-          logging.info("keep going!")
+          if (b - a) > time_out:
+            break
           time.sleep(10)
     else:
       a = time.time()
@@ -140,11 +140,11 @@ def check_process(ll):
             break
           else:
             logging.info(get_data)
-            if (b-a) > 5:
-              logging.info("up to 5s")
+            if (b-a) > time_out:
               break
         except Exception as e:
           logging.info("Storeinfo error. " + str(e))
-          logging.info("keep going!")
+          if (b - a) > time_out:
+            break
           time.sleep(10)
 fun()
