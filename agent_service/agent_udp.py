@@ -260,6 +260,7 @@ def getAllprocess():
     return get_data
   except Exception as e:
     logging.info("Error," + str(e) + "--getAllprocess()")
+    return ""
 
 def gen_Cron_first_minute():
   try:
@@ -299,13 +300,16 @@ def gen_Cron_first_hour():
 def get_Old_cycle():
   try:
     os.system("crontab -l > {0}".format(crontab_opvis_a))
-    p = os.popen("crontab -l|grep -E 'm$||h$' |wc -l").readline()[0]
+    p = os.popen("crontab -l|grep -E 'm$||h$' |grep -v '^$'|wc -l").readline()[0]
     if int(p) < 1:
       while True:
         try:
           get_data = getAllprocess()
           if get_data:
             break
+          else:
+            time.sleep(10)
+            continue
         except Exception as e:
           logging.info("Can't connect to proxy")
           time.sleep(10)
