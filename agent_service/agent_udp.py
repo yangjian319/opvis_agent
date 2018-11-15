@@ -318,14 +318,13 @@ def get_Old_cycle():
           with open(allitems, "a") as fd:
             fd.write(json.dumps(i))
             fd.write("\n")
-        # 周期为分钟/小时
         cycle_unit = json.loads(get_data)
         trigger_cycle_value_minute = []
         trigger_cycle_value_hour = []
         for x in cycle_unit:
-          if x["trigger_cycle_unit"] == 0:  # 周期为分钟
+          if x["trigger_cycle_unit"] == 0:
             trigger_cycle_value_minute.append(str(x["trigger_cycle_value"]))
-          else:  # 周期为小时
+          else:
             trigger_cycle_value_hour.append(str(x["trigger_cycle_value"]))
 
         for cycle in set(trigger_cycle_value_minute):
@@ -362,14 +361,13 @@ def get_New_cycle():
         with open(allitems, "a") as fd:
           fd.write(json.dumps(i))
           fd.write("\n")
-      # 周期为分钟/小时
       cycle_unit = json.loads(get_data)
       trigger_cycle_value_minute = []
       trigger_cycle_value_hour = []
       for x in cycle_unit:
-        if x["trigger_cycle_unit"] == 0:  # 周期为分钟
+        if x["trigger_cycle_unit"] == 0:
           trigger_cycle_value_minute.append(str(x["trigger_cycle_value"]))
-        else:  # 周期为小时
+        else:
           trigger_cycle_value_hour.append(str(x["trigger_cycle_value"]))
 
       for cycle in set(trigger_cycle_value_minute):
@@ -387,7 +385,6 @@ def get_New_cycle():
       logging.info("No data return from database. --get_New_cycle()")
   except Exception as e:
     logging.info("Error," + str(e) + "--get_New_cycle()")
-
 
 def gen_Cron_later_minute():
   try:
@@ -548,9 +545,8 @@ if __name__=='__main__':
   except Exception as e:
     logging.info("Udp connection error: " + str(e))
 
-  # iplist = ["172.30.130.137:18382", "172.30.130.126:18382", "10.124.5.163:18382", "10.144.2.248:18382",
-  #           "10.123.30.177:18382", "172.30.194.121:18382", "172.16.5.20:18382", "10.181.1.0:18382"]
-  iplist = ["172.30.130.126:18382"]
+  iplist = ["172.30.130.137:18382", "172.30.130.126:18382", "10.124.5.163:18382", "10.144.2.248:18382",
+            "10.123.30.177:18382", "172.30.194.121:18382", "172.16.5.20:18382", "10.181.1.0:18382"]
   for ip in iplist:
     try:
       so = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -563,20 +559,10 @@ if __name__=='__main__':
     except Exception as e:
       logging.info("Determine which area the machine belongs to error: " + str(e))
   jifangip = currentip
-
   daemon_process()
-
   post_md5(jifangip)
   pid=os.fork()
   if pid==0:
-    if not os.path.exists(os.path.join(plugin_dir, "pmonitor.py")):
-      process_monitor_url = "http://10.181.1.0:18382/proxyDownLoad/pmonitor.py"
-      #urllib.urlretrieve(process_monitor_url, os.path.join(plugin_dir, "pmonitor.py"))
-      ret_html = urllib.urlopen(process_monitor_url)
-      ret_html1 = ret_html.read()
-      code = ret_html.code
-      with open(os.path.join(plugin_dir, "pmonitor.py"), "wb") as fp:
-        fp.write(ret_html1)
     get_Old_cycle()
   else:
     main()
