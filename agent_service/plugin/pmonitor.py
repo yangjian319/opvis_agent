@@ -68,7 +68,10 @@ def check_process(ll):
     count_new = os.popen("ps aux|grep %s|grep -v grep|wc -l" % key_word).readline()[0]
     current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if int(count_new) < int(trigger_value):
+      a = time.time()
+      logging.info(a)
       while True:
+        b = time.time()
         try:
           upload_data = {}
           upload_data["id"] = id
@@ -85,20 +88,30 @@ def check_process(ll):
           upload_data["new_count"] = count_new
           upload_data["current_time"] = current_time
           upload_data = urllib.urlencode(upload_data)
+          if trigger_cycle_unit == 0:
+            time_out = int(trigger_cycle_value)*60
+          else:
+            time_out = int(trigger_cycle_value) * 3600
           req = urllib2.Request(url=get_process_url, data=upload_data)
-          res = urllib2.urlopen(req)
+          res = urllib2.urlopen(req,timeout=time_out)
           get_data = res.read()
           if get_data == "ok":
             logging.info("process is less than original!" + " process name is: " + str(key_word) + " " + " machine ip is: " + str(biz_ip))
             break
           else:
             logging.info(get_data)
-            break
+            if (b-a) > 5:
+              logging.info("up to 5s")
+              break
         except Exception as e:
           logging.info("Storeinfo error. " + str(e))
+          logging.info("keep going!")
           time.sleep(10)
     else:
+      a = time.time()
+      logging.info(a)
       while True:
+        b = time.time()
         try:
           upload_data = {}
           upload_data["id"] = id
@@ -115,16 +128,23 @@ def check_process(ll):
           upload_data["new_count"] = count_new
           upload_data["current_time"] = current_time
           upload_data = urllib.urlencode(upload_data)
+          if trigger_cycle_unit == 0:
+            time_out = int(trigger_cycle_value)*60
+          else:
+            time_out = int(trigger_cycle_value) * 3600
           req = urllib2.Request(url=get_process_url, data=upload_data)
-          res = urllib2.urlopen(req, timeout=70)
+          res = urllib2.urlopen(req, timeout=time_out)
           get_data = res.read()
           if get_data == "ok":
             logging.info("process monitor is ok！" + " process name is: " + str(key_word) + " " + " machine ip is: " + str(biz_ip))
             break
           else:
             logging.info(get_data)
-            break
+            if (b-a) > 5:
+              logging.info("up to 5s")
+              break
         except Exception as e:
           logging.info("Storeinfo error. " + str(e))
+          logging.info("keep going!")
           time.sleep(10)
 fun()
