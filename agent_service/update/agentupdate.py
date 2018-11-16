@@ -49,7 +49,8 @@ except OSError,error:
   logging.info("opvis_agent update second fork failed!")
   sys.exit(1)
 
-
+if os.path.exists("/home/opvis/opvis_agent.tar.gz"):
+  os.rename("/home/opvis/opvis_agent.tar.gz","/home/opvis/opvis_agent.tar.gz.bak")
 urllib.urlretrieve(url, "/home/opvis/opvis_agent.tar.gz")
 logging.info("Download opvis_agent.tar.gz successfully!")
 if os.path.exists("/home/opvis/opvis_agent.tar.gz"):
