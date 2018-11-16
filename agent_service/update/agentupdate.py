@@ -28,7 +28,7 @@ dic = json.loads(dic)
 #url = dic.get("agentUrl")
 with open("/home/opvis/utils/agent.lock", "r") as fd:
   proxy_ip = fd.readline()
-url = "http://" + proxy_ip + "/proxyDownload/opvis_agent.tar.gz"
+url = "http://" + proxy_ip + "/proxyDownLoad/opvis_agent.tar.gz"
 logging.info("Download agent url: " + str(url))
 
 try:
