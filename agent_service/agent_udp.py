@@ -23,7 +23,7 @@ import threading
 from logging.handlers import TimedRotatingFileHandler
 
 
-VERSION = 1
+VERSION = 3
 # log
 if not os.path.exists("/home/opvis/utils/log"):
   os.makedirs("/home/opvis/utils/log")
@@ -298,6 +298,10 @@ def gen_Cron_first_hour():
 
 
 def get_Old_cycle():
+  if os.path.exists(allcycle_a):
+    os.remove(allcycle_a)
+  if os.path.exists(allitems):
+    os.remove(allitems)
   try:
     os.system("crontab -l > {0}".format(crontab_opvis_a))
     p = os.popen("crontab -l|grep -E 'm$||h$' |grep -v '^$'|wc -l").readline()[0]
@@ -342,6 +346,22 @@ def get_Old_cycle():
         logging.info("No data return from database. --get_Old_cycle()")
     else:
       logging.info("It's not the first time agent start!")
+      while True:
+        try:
+          get_data = getAllprocess()
+          if get_data:
+            break
+          else:
+            time.sleep(10)
+            continue
+        except Exception as e:
+          logging.info("Can't connect to proxy")
+          time.sleep(10)
+      if get_data:
+        for i in json.loads(get_data):
+          with open(allitems, "a") as fd:
+            fd.write(json.dumps(i))
+            fd.write("\n")
   except Exception as e:
     logging.info("Error," + str(e) + "--get_Old_cycle()")
 
