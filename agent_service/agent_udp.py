@@ -426,17 +426,30 @@ def gen_Cron_later_minute():
     fa.close()
     fb.close()
     fc.close()
-    os.system("crontab -l > {0}".format(crontab_opvis_b))
-    with open(allcycle_c, "r") as fd:
-      lines = fd.readlines()
-      for i in lines:
-        if i.split(":")[1].strip(" ")[-2:-1] == "m":
-          i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
-          cron_cmd = "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n")[:-1] + " * * * * python " + pmonitorDir + " " + str(i)
-          with open(crontab_opvis_b, "a") as fd:
-            fd.write(cron_cmd)
-            fd.write("\n")
-      os.system("crontab {0}".format(crontab_opvis_b))
+
+    if len(stra) <= len(strb): # 添加定时任务
+      os.system("crontab -l > {0}".format(crontab_opvis_b))
+      with open(allcycle_c, "r") as fd:
+        lines = fd.readlines()
+        for i in lines:
+          if i.split(":")[1].strip(" ")[-2:-1] == "m":
+            i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
+            cron_cmd = "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n")[
+                                   :-1] + " * * * * python " + pmonitorDir + " " + str(i)
+            with open(crontab_opvis_b, "a") as fd:
+              fd.write(cron_cmd)
+              fd.write("\n")
+        os.system("crontab {0}".format(crontab_opvis_b))
+    else: # 删除定时任务
+      os.system("crontab -l > {0}".format(crontab_opvis_b_del))
+      with open(allcycle_c, "r") as fd:
+        lines = fd.readlines()
+        for i in lines:
+          if i.split(":")[1].strip(" ")[-2:-1] == "m":
+            i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
+            cron_del_cmd = "sed -i '/{0}/d' {1}".format(i,crontab_opvis_b_del)
+            os.system(cron_del_cmd)
+        os.system("crontab {0}".format(crontab_opvis_b_del))
   except Exception as e:
     logging.info("Error," + str(e) + "--gen_Cron_later_minute()")
 
@@ -460,17 +473,29 @@ def gen_Cron_later_hour():
     fa.close()
     fb.close()
     fc.close()
-    os.system("crontab -l > {0}".format(crontab_opvis_b))
-    with open(allcycle_c, "r") as fd:
-      lines = fd.readlines()
-      for i in lines:
-        if i.split(":")[1].strip(" ")[-2:-1] == "h":
-          i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
-          cron_cmd = "0 " + "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n")[:-1] + " * * * python " + pmonitorDir + " " + str(i)
-          with open(crontab_opvis_b, "a") as fd:
-            fd.write(cron_cmd)
-            fd.write("\n")
-      os.system("crontab {0}".format(crontab_opvis_b))
+    if len(stra) <= len(strb):  # 添加定时任务
+      os.system("crontab -l > {0}".format(crontab_opvis_b_del))
+      with open(allcycle_c, "r") as fd:
+        lines = fd.readlines()
+        for i in lines:
+          if i.split(":")[1].strip(" ")[-2:-1] == "h":
+            i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
+            cron_cmd = "0 " + "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n")[
+                                          :-1] + " * * * python " + pmonitorDir + " " + str(i)
+            with open(crontab_opvis_b, "a") as fd:
+              fd.write(cron_cmd)
+              fd.write("\n")
+        os.system("crontab {0}".format(crontab_opvis_b_del))
+    else: # 删除定时任务
+      os.system("crontab -l > {0}".format(crontab_opvis_b_del))
+      with open(allcycle_c, "r") as fd:
+        lines = fd.readlines()
+        for i in lines:
+          if i.split(":")[1].strip(" ")[-2:-1] == "h":
+            i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
+            cron_del_cmd = "sed -i '/{0}/d' {1}".format(i, crontab_opvis_b_del)
+            os.system(cron_del_cmd)
+        os.system("crontab {0}".format(crontab_opvis_b_del))
   except Exception as e:
     logging.info("Error," + str(e) + "gen_Cron_later_hour()")
 
@@ -546,6 +571,10 @@ if __name__=='__main__':
   crontab_opvis_a = "/home/opvis/utils/cron/crontab_opvis_a"
   crontab_opvis_b = "/home/opvis/utils/cron/crontab_opvis_b"
   crontab_opvis_c = "/home/opvis/utils/cron/crontab_opvis_c"
+
+  crontab_opvis_b_del = "/home/opvis/utils/cron/crontab_opvis_b_del"
+
+
 
   pmonitorLog = "/home/opvis/utils/log/pmonitor.log"
   pmonitorDir = "/home/opvis/utils/plugin/pmonitor.py"
