@@ -242,7 +242,7 @@ def getAllprocess():
     with open("/home/opvis/utils/agent.lock", "r") as fd:
       proxy_ip = fd.readline().split(":")[0]
     get_process_url = "http://" + proxy_ip + ":9995" + "/selectinfo/"
-    ips = []
+    ips = ""
     allips = get_all_ips()
     for item in allips:
       hip = re_format_ip(item)
@@ -251,9 +251,12 @@ def getAllprocess():
       out.replace("\r", "")
       if out == "127.0.0.1":
         continue
-      ips.append(out)
-      ip = ",".join(ips)
-    get_process_url += ip
+      ips += out
+      ips += ","
+    ip = {"ip":ips}
+    ip = urllib.urlencode(ip)
+      #ips.append(out)
+      #ip = ",".join(ips)
     req = urllib2.Request(url=get_process_url, data=ip)
     res = urllib2.urlopen(req)
     get_data = res.read()
