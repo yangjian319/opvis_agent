@@ -8,6 +8,7 @@ import os
 import sys
 import time
 import json
+import socket
 import urllib
 import urllib2
 import logging
@@ -33,6 +34,8 @@ arg_time = arg.split("=")[1].replace("\n","")[-1:]
 logging.info(str(arg_time))
 
 allitems = "/home/opvis/utils/pm/allitems"
+resend_datas_m = "/home/opvis/utils/pm/resend_datas_m"
+resend_datas_h = "/home/opvis/utils/pm/resend_datas_h"
 def fun():
   lm=[]
   lh = []
@@ -53,6 +56,8 @@ def check_process(ll):
   with open("/home/opvis/utils/agent.lock", "r") as fd:
     proxy_ip = fd.readline().split(":")[0]
   get_process_url = "http://" + proxy_ip + ":9995" + "/storeinfo/"
+  address = (proxy_ip,9993)
+  udpsocket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
   for x in ll:
     id = x.get("id")
     biz_ip = x.get("biz_ip")
@@ -69,7 +74,7 @@ def check_process(ll):
     current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if int(count_new) < int(trigger_value):
       a = time.time()
-      logging.info(a)
+      resend_data_m = ""
       while True:
         b = time.time()
         try:
@@ -97,19 +102,41 @@ def check_process(ll):
           get_data = res.read()
           if get_data == "ok":
             logging.info("process is less than original!" + " process name is: " + str(key_word) + " " + " machine ip is: " + str(biz_ip))
+            # resend
+            if os.path.exists(resend_datas_m):
+              with open(resend_datas_m,"r") as fp:
+                result = fp.readlines()
+                result = json.dumps(result)
+                logging.info("转换成json串")
+                logging.info(result)
+              udpsocket.sendto(result,address)
+              os.remove(resend_datas_m)
             break
           else:
             logging.info(get_data)
             if (b-a) > time_out:
+              # resend
+              if os.path.exists(resend_datas_m):
+                with open(resend_datas_m, "r") as fp:
+                  result = fp.readlines()
+                  result = json.dumps(result)
+                udpsocket.sendto(result, address)
+                os.remove(resend_datas_m)
               break
+            time.sleep(10)
         except Exception as e:
+          if not resend_data_m:
+            resend_data_m = current_time + "," + id + "," + biz_ip + "," + manage_ip + "," + process_name + "," + key_word + "," + trigger_compare + "," + trigger_value + "," + trigger_level + "," + trigger_cycle_value + "," + trigger_cycle_unit + "," + trigger_value + "," + count_new
+            logging.info(resend_data_m)
           logging.info("Storeinfo error. " + str(e))
           if (b - a) > time_out:
+            with open(resend_datas_m,"a") as fd:
+              fd.write(resend_data_m)
             break
           time.sleep(10)
     else:
       a = time.time()
-      logging.info(a)
+      resend_data_h = ""
       while True:
         b = time.time()
         try:
@@ -137,14 +164,31 @@ def check_process(ll):
           get_data = res.read()
           if get_data == "ok":
             logging.info("process monitor is ok！" + " process name is: " + str(key_word) + " " + " machine ip is: " + str(biz_ip))
+            if os.path.exists(resend_datas_m):
+              with open(resend_datas_m,"r") as fp:
+                result = fp.readlines()
+                result = json.dumps(result)
+              udpsocket.sendto(result,address)
+              os.remove(resend_datas_m)
             break
           else:
             logging.info(get_data)
             if (b-a) > time_out:
+              if os.path.exists(resend_datas_m):
+                with open(resend_datas_m, "r") as fp:
+                  result = fp.readlines()
+                  result = json.dumps(result)
+                udpsocket.sendto(result, address)
+                os.remove(resend_datas_m)
               break
+            time.sleep(10)
         except Exception as e:
+          if not resend_data_h:
+            resend_data_h = current_time + "," + id + "," + biz_ip + "," + manage_ip + "," + process_name + "," + key_word + "," + trigger_compare + "," + trigger_value + "," + trigger_level + "," + trigger_cycle_value + "," + trigger_cycle_unit + "," + trigger_value + "," + count_new
           logging.info("Storeinfo error. " + str(e))
           if (b - a) > time_out:
+            with open(resend_datas_h,"a") as fd:
+              fd.write(resend_data_h)
             break
           time.sleep(10)
 fun()
