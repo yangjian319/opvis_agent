@@ -17,7 +17,7 @@ from datetime import datetime
 import ConfigParser
 
 # log
-LOG_FILE = "/home/opvis/opvis_agent/agent_service/log/update.log"
+LOG_FILE = "/home/opvis/utils/log/update.log"
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 fh = TimedRotatingFileHandler(LOG_FILE, when='D', interval=1, backupCount=30)
