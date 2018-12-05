@@ -15,6 +15,7 @@ import struct
 import array
 import getopt
 import socket
+import random
 import urllib
 import urllib2
 import logging
@@ -70,6 +71,31 @@ def post_md5(jifangip):
   except Exception as e:
     logging.info("Upload MD5 to proxy error: " + str(e))
   logging.info("Upload MD5 to proxy successfully: " + str(data))
+
+def check_sudoers_md5():
+  while True:
+    with open("/home/opvis/utils/agent.lock", "r") as fd:
+      proxy_ip = fd.readline().split(":")[0]
+    post_sudoers_url = "http://" + proxy_ip + ":9995" + "/check_agent_sudo/"
+    (status, md5) = commands.getstatusoutput("sudo md5sum /etc/sudoers|awk '{print $1}'")
+    if not os.path.exists(sudoers_original_md5):
+      with open(sudoers_original_md5, "w") as fd:
+        fd.write(md5)
+    with open(sudoers_original_md5,"r") as fd:
+      original_md5 = fd.readline()
+    if md5 != original_md5:
+      req_data = {}
+      req_data['original_md5'] = original_md5
+      req_data['new_md5'] = md5
+      try:
+        args_restful = urllib.urlencode(req_data)
+        req = urllib2.Request(url=post_sudoers_url, data=args_restful)
+        res = urllib2.urlopen(req, timeout=70)
+        data = res.read()
+      except Exception as e:
+        logging.info("Post sudoers md5 error: " + str(e) + "-- check_sudoers_md5")
+      logging.info("Post sudoers md5 successfully: " + str(data) + "-- check_sudoers_md5()")
+    time.sleep(float(240))
 
 # get pluginname
 def file_name(plugin_dir):
@@ -265,20 +291,37 @@ def getAllprocess():
     logging.info("Error," + str(e) + "--getAllprocess()")
     return ""
 
+def gen_crontab(i,yanshi):
+  while True:
+    cmd = "python " + pmonitorDir + " " + i
+    os.system(cmd)
+    time.sleep(yanshi)
+
+
 def gen_Cron_first_minute():
   try:
     with open(allcycle_a, "r") as fd:
       lines = fd.readlines()
       for i in lines:
-        # format of i --> "trigger_cycle_value": 2
+        logging.info("第一次定时任务之分钟")
+        logging.info(i)
+        # format of i --> "trigger_cycle_value": 2m
         if i.split(":")[1].strip(" ")[-2:-1] == "m":
+          logging.info(i.split(":")[1].strip(" ")[-2:-1])
           i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
-          cron_cmd = "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n")[
-                                 :-1] + " * * * * python " + pmonitorDir + " " + str(i)
-          with open(crontab_opvis_a, "a") as fd:
-            fd.write(cron_cmd)
-            fd.write("\n")
-      os.system("crontab {0}".format(crontab_opvis_a))
+          logging.info(i)
+          yanshi = int(i.split("=")[1].strip(" ")[:-1])*60
+          random_time = random.randint(1,59)
+          random_time = random_time + round(random.random(),2)
+          time.sleep(random_time)
+          pid = os.fork()
+          if pid == 0:
+            sub_process_id = os.getpid()
+            pidfile = i.split("=")[1] + ":" + str(sub_process_id)
+            with open(pid_of_process, "a") as fd:
+              fd.write(pidfile)
+              fd.write("\n")
+            gen_crontab(i, yanshi)
   except Exception as e:
     logging.info("Error," + str(e) + "--gen_Cron_first_minute()")
 
@@ -287,15 +330,25 @@ def gen_Cron_first_hour():
     with open(allcycle_a, "r") as fd:
       lines = fd.readlines()
       for i in lines:
+        logging.info("第一次定时任务之小时")
+        logging.info(i)
         # format of i --> "trigger_cycle_value": 2h
         if i.split(":")[1].strip(" ")[-2:-1] == "h":
+          logging.info(i.split(":")[1].strip(" ")[-2:-1])
           i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
-          cron_cmd = "0 " + "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n")[
-                                        :-1] + " * * * python " + pmonitorDir + " " + str(i)
-          with open(crontab_opvis_a, "a") as fd:
-            fd.write(cron_cmd)
-            fd.write("\n")
-      os.system("crontab {0}".format(crontab_opvis_a))
+          logging.info(i)
+          yanshi = int(i.split("=")[1].strip(" ")[:-1])*3600
+          random_time = random.randint(1,59)
+          random_time = random_time + round(random.random(), 2)
+          time.sleep(random_time)
+          pid = os.fork()
+          if pid == 0:
+            sub_process_id = os.getpid()
+            pidfile = i.split("=")[1] + ":" + str(sub_process_id)
+            with open(pid_of_process, "a") as fd:
+              fd.write(pidfile)
+              fd.write("\n")
+            gen_crontab(i, yanshi)
   except Exception as e:
     logging.info("Error," + str(e) + "--gen_Cron_first_hour()")
 
@@ -306,65 +359,48 @@ def get_Old_cycle():
   if os.path.exists(allitems):
     os.remove(allitems)
   try:
-    os.system("crontab -l > {0}".format(crontab_opvis_a))
-    p = os.popen("crontab -l|grep -E 'm$||h$' |grep -v '^$'|wc -l").readline()[0]
-    if int(p) < 1:
-      while True:
-        try:
-          get_data = getAllprocess()
-          if get_data:
-            break
-          else:
-            time.sleep(10)
-            continue
-        except Exception as e:
-          logging.info("Can't connect to proxy")
+    while True:
+      try:
+        get_data = getAllprocess()
+        if get_data:
+          break
+        else:
           time.sleep(10)
-      if get_data:
-        for i in json.loads(get_data):
-          with open(allitems, "a") as fd:
-            fd.write(json.dumps(i))
-            fd.write("\n")
-        cycle_unit = json.loads(get_data)
-        trigger_cycle_value_minute = []
-        trigger_cycle_value_hour = []
-        for x in cycle_unit:
-          if x["trigger_cycle_unit"] == 0:
-            trigger_cycle_value_minute.append(str(x["trigger_cycle_value"]))
-          else:
-            trigger_cycle_value_hour.append(str(x["trigger_cycle_value"]))
+          continue
+      except Exception as e:
+        logging.info("Can't connect to proxy")
+        time.sleep(10)
+    if get_data:
+      for i in json.loads(get_data):
+        with open(allitems, "a") as fd:
+          fd.write(json.dumps(i))
+          fd.write("\n")
+      cycle_unit = json.loads(get_data)
+      trigger_cycle_value_minute = []
+      trigger_cycle_value_hour = []
+      for x in cycle_unit:
+        if x["trigger_cycle_unit"] == 0:
+          trigger_cycle_value_minute.append(str(x["trigger_cycle_value"]))
+        else:
+          trigger_cycle_value_hour.append(str(x["trigger_cycle_value"]))
+      logging.info(str(trigger_cycle_value_hour))
 
-        for cycle in set(trigger_cycle_value_minute):
-          with open(allcycle_a, "a") as fd:  # format  "trigger_cycle_value": 1
-            fd.write('"trigger_cycle_value": ' + str(cycle) + "m")
-            fd.write("\n")
+      for cycle in set(trigger_cycle_value_minute):
+        with open(allcycle_a, "a") as fd:  # format  "trigger_cycle_value": 1
+          fd.write('"trigger_cycle_value": ' + str(cycle) + "m")
+          fd.write("\n")
+
+      for cycle in set(trigger_cycle_value_hour):
+        with open(allcycle_a, "a") as fd:  # format  "trigger_cycle_value": 1
+          fd.write('"trigger_cycle_value": ' + str(cycle) + "h")
+          fd.write("\n")
+
+      if trigger_cycle_value_minute:
         gen_Cron_first_minute()
-
-        for cycle in set(trigger_cycle_value_hour):
-          with open(allcycle_a, "a") as fd:  # format  "trigger_cycle_value": 1
-            fd.write('"trigger_cycle_value": ' + str(cycle) + "h")
-            fd.write("\n")
+      if trigger_cycle_value_hour:
         gen_Cron_first_hour()
-      else:
-        logging.info("No data return from database. --get_Old_cycle()")
     else:
-      logging.info("It's not the first time agent start!")
-      while True:
-        try:
-          get_data = getAllprocess()
-          if get_data:
-            break
-          else:
-            time.sleep(10)
-            continue
-        except Exception as e:
-          logging.info("Can't connect to proxy")
-          time.sleep(10)
-      if get_data:
-        for i in json.loads(get_data):
-          with open(allitems, "a") as fd:
-            fd.write(json.dumps(i))
-            fd.write("\n")
+      logging.info("No data return from database. --get_Old_cycle()")
   except Exception as e:
     logging.info("Error," + str(e) + "--get_Old_cycle()")
 
@@ -397,110 +433,95 @@ def get_New_cycle():
         with open(allcycle_b, "a") as fd:  # format  "trigger_cycle_value": 1m
           fd.write('"trigger_cycle_value": ' + str(cycle) + "m")
           fd.write("\n")
-      gen_Cron_later_minute()
 
       for cycle in set(trigger_cycle_value_hour):
         with open(allcycle_b, "a") as fd:  # format  "trigger_cycle_value": 1h
           fd.write('"trigger_cycle_value": ' + str(cycle) + "h")
           fd.write("\n")
-      gen_Cron_later_hour()
-    else:
-      logging.info("No data return from database. --get_New_cycle()")
-  except Exception as e:
-    logging.info("Error," + str(e) + "--get_New_cycle()")
+      stra = []
+      strb = []
+      strc = []
+      fa = open(allcycle_a, 'r')
+      fb = open(allcycle_b, 'r')
+      fc = open(allcycle_c, 'w')
+      for line in fa.readlines():
+        stra.append(line.replace("\n", ''))
+      for line in fb.readlines():
+        strb.append(line.replace("\n", ''))
+      for j in strb:
+        if j not in stra:
+          strc.append(j)
+      for i in strc:
+        fc.write(i + "\n")
+      fa.close()
+      fb.close()
+      fc.close()
+      if len(stra) < len(strb):  # 添加定时任务
+        with open(allcycle_c, "r") as fd:
+          lines = fd.readlines()
+          logging.info(lines)
+        for i in lines:
+          logging.info("新增时添加定时任务")
+          logging.info(i)
+          if i.split(":")[1].strip(" ")[-2:-1] == "m":  # 如果是m
+            i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
+            yanshi = int(i.split("=")[1].strip(" ")[:-1]) * 60
+            logging.info(yanshi)
+            random_time = random.randint(1, 59)
+            random_time = random_time + round(random.random(), 2)
+            logging.info(random_time)
+            time.sleep(random_time)
+            pid = os.fork()
+            if pid == 0:
+              sub_process_id = os.getpid()
+              pidfile = i.split("=")[1] + ":" + str(sub_process_id)
+              with open(pid_of_process, "a") as fd:
+                fd.write(pidfile)
+                fd.write("\n")
+              gen_crontab(i, yanshi)
+          elif i.split(":")[1].strip(" ")[-2:-1] == "h":  # 如果是h
+            i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
+            yanshi = int(i.split("=")[1].strip(" ")[:-1]) * 3600
+            random_time = random.randint(1, 59)
+            random_time = random_time + round(random.random(), 2)
+            time.sleep(random_time)
+            pid = os.fork()
+            if pid == 0:
+              sub_process_id = os.getpid()
+              pidfile = i.split("=")[1] + ":" + str(sub_process_id)
+              with open(pid_of_process, "a") as fd:
+                fd.write(pidfile)
+                fd.write("\n")
+              gen_crontab(i, yanshi)
+      elif len(stra) > len(strb):  # 删除定时任务
+        del_strc = set(stra) - set(strb)
+        logging.info(del_strc)
+        for i in del_strc:
+          logging.info("删除定时任务打印i")
+          logging.info(i)
+          logging.info(type(i))
+          dic_minute_hour = {}
+          del_minute_hour = i.split(":")[1].strip(" ")
 
-def gen_Cron_later_minute():
-  try:
-    stra = []
-    strb = []
-    strc = []
-    fa = open(allcycle_a, 'r')
-    fb = open(allcycle_b, 'r')
-    fc = open(allcycle_c, 'w')
-    for line in fa.readlines():
-      stra.append(line.replace("\n", ''))
-    for line in fb.readlines():
-      strb.append(line.replace("\n", ''))
-    for j in strb:
-      if j not in stra:
-        strc.append(j)
-    for i in strc:
-      fc.write(i + "\n")
-    fa.close()
-    fb.close()
-    fc.close()
+          with open(pid_of_process, "r") as fd:
+            for line in fd.readlines():
+              line = line.replace("\n", "").split(":")
+              logging.info(line)
+              logging.info(dic_minute_hour)
+              dic_minute_hour[line[0]] = line[1]
+          logging.info(dic_minute_hour)
 
-    if len(stra) <= len(strb): # 添加定时任务
-      os.system("crontab -l > {0}".format(crontab_opvis_b))
-      with open(allcycle_c, "r") as fd:
-        lines = fd.readlines()
-        for i in lines:
-          if i.split(":")[1].strip(" ")[-2:-1] == "m":
-            i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
-            cron_cmd = "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n")[
-                                   :-1] + " * * * * python " + pmonitorDir + " " + str(i)
-            with open(crontab_opvis_b, "a") as fd:
-              fd.write(cron_cmd)
-              fd.write("\n")
-        os.system("crontab {0}".format(crontab_opvis_b))
-    else: # 删除定时任务
-      os.system("crontab -l > {0}".format(crontab_opvis_b_del))
-      with open(allcycle_c, "r") as fd:
-        lines = fd.readlines()
-        for i in lines:
-          if i.split(":")[1].strip(" ")[-2:-1] == "m":
-            i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
-            cron_del_cmd = "sed -i '/{0}/d' {1}".format(i,crontab_opvis_b_del)
-            os.system(cron_del_cmd)
-        os.system("crontab {0}".format(crontab_opvis_b_del))
+          del_pid = dic_minute_hour[del_minute_hour]
+          logging.info(del_pid)
+          logging.info("删除定时任务")
+          logging.info(del_pid)
+          cmd = "kill -9 " + del_pid
+          logging.info(cmd)
+          os.system(cmd)
+          cron_del_cmd = "sed -i '/{0}/d' {1}".format(del_pid, pid_of_process)
+          os.system(cron_del_cmd)
   except Exception as e:
-    logging.info("Error," + str(e) + "--gen_Cron_later_minute()")
-
-def gen_Cron_later_hour():
-  try:
-    stra = []
-    strb = []
-    strc = []
-    fa = open(allcycle_a, 'r')
-    fb = open(allcycle_b, 'r')
-    fc = open(allcycle_c, 'w')
-    for line in fa.readlines():
-      stra.append(line.replace("\n", ''))
-    for line in fb.readlines():
-      strb.append(line.replace("\n", ''))
-    for j in strb:
-      if j not in stra:
-        strc.append(j)
-    for i in strc:
-      fc.write(i + "\n")
-    fa.close()
-    fb.close()
-    fc.close()
-    if len(stra) <= len(strb):  # 添加定时任务
-      os.system("crontab -l > {0}".format(crontab_opvis_b_del))
-      with open(allcycle_c, "r") as fd:
-        lines = fd.readlines()
-        for i in lines:
-          if i.split(":")[1].strip(" ")[-2:-1] == "h":
-            i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
-            cron_cmd = "0 " + "*" + "/" + str(i.split("=")[1].strip(" ")).strip("\n")[
-                                          :-1] + " * * * python " + pmonitorDir + " " + str(i)
-            with open(crontab_opvis_b, "a") as fd:
-              fd.write(cron_cmd)
-              fd.write("\n")
-        os.system("crontab {0}".format(crontab_opvis_b_del))
-    else: # 删除定时任务
-      os.system("crontab -l > {0}".format(crontab_opvis_b_del))
-      with open(allcycle_c, "r") as fd:
-        lines = fd.readlines()
-        for i in lines:
-          if i.split(":")[1].strip(" ")[-2:-1] == "h":
-            i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
-            cron_del_cmd = "sed -i '/{0}/d' {1}".format(i, crontab_opvis_b_del)
-            os.system(cron_del_cmd)
-        os.system("crontab {0}".format(crontab_opvis_b_del))
-  except Exception as e:
-    logging.info("Error," + str(e) + "gen_Cron_later_hour()")
+    logging.info("Error," + str(e) + "get_New_cycle()")
 
 def main():
   try:
@@ -536,12 +557,17 @@ def main():
     data2 = lstr + data1 + rstr
     dic = json.loads(data)
     logging.info("Change data to dict: " + str(dic))
-
     if "pstatus" in dic:
       get_New_cycle()
       os.remove(allcycle_a)
       os.rename(allcycle_b, allcycle_a)
       os.remove(allcycle_c)
+    elif "status" in dic and dic["status"] == 8:
+      try:
+        check_sudoers_md5 = threading.Thread(target=check_sudoers_md5, args=())
+        check_sudoers_md5.start()
+      except Exception as e:
+        logging.info("Check sudoers md5, thread error: " + str(e) + "-- check_sudoers_md5()")
     else:
       if addr[0] != "127.0.0.1":
         status = dic["pluginfo"]["status"]
@@ -570,15 +596,12 @@ if __name__=='__main__':
   allcycle_a = "/home/opvis/utils/pm/allcycle_a"
   allcycle_b = "/home/opvis/utils/pm/allcycle_b"
   allcycle_c = "/home/opvis/utils/pm/allcycle_c"
-
+  pid_of_process = "/home/opvis/utils/pm/pid_of_process"
   crontab_opvis_a = "/home/opvis/utils/cron/crontab_opvis_a"
   crontab_opvis_b = "/home/opvis/utils/cron/crontab_opvis_b"
   crontab_opvis_c = "/home/opvis/utils/cron/crontab_opvis_c"
-
   crontab_opvis_b_del = "/home/opvis/utils/cron/crontab_opvis_b_del"
-
-
-
+  sudoers_original_md5 = "/home/opvis/utils/pm/sudoers_original_md5"
   pmonitorLog = "/home/opvis/utils/log/pmonitor.log"
   pmonitorDir = "/home/opvis/utils/plugin/pmonitor.py"
   plugin_dir = "/home/opvis/utils/plugin/"
@@ -615,6 +638,8 @@ if __name__=='__main__':
   post_md5(jifangip)
   pid=os.fork()
   if pid==0:
+    if os.path.exists(pid_of_process):
+      os.remove(pid_of_process)
     get_Old_cycle()
   else:
     main()
