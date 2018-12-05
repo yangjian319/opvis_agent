@@ -58,7 +58,11 @@ def check_process(ll):
   get_process_url = "http://" + proxy_ip + ":9995" + "/storeinfo/"
   address = (proxy_ip,9993)
   udpsocket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+  time_out=0
+  send_total_msg = {}
+  total_msg = [] # 所有进程信息，最后发给transfer
   for x in ll:
+    upload_data = {}  # 每一个进程信息
     id = x.get("id")
     biz_ip = x.get("biz_ip")
     manage_ip = x.get("manage_ip")
@@ -67,128 +71,67 @@ def check_process(ll):
     key_word = "'" + key_word + "'"
     trigger_compare = x.get("trigger_compare")
     trigger_value = x.get("trigger_value")
+    should_be = x.get("trigger_value")
     trigger_level = x.get("trigger_level")
     trigger_cycle_value = x.get("trigger_cycle_value")
     trigger_cycle_unit = x.get("trigger_cycle_unit")
     count_new = os.popen("ps aux|grep %s|grep -v grep|wc -l" % key_word).readline()[0]
     current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    if int(count_new) < int(trigger_value):
-      a = time.time()
-      resend_data_m = ""
-      while True:
-        b = time.time()
-        try:
-          upload_data = {}
-          upload_data["id"] = id
-          upload_data["biz_ip"] = biz_ip
-          upload_data["manage_ip"] = manage_ip
-          upload_data["process_name"] = process_name
-          upload_data["key_word"] = key_word
-          upload_data["trigger_compare"] = trigger_compare
-          upload_data["trigger_value"] = trigger_value
-          upload_data["trigger_level"] = trigger_level
-          upload_data["trigger_cycle_value"] = trigger_cycle_value
-          upload_data["trigger_cycle_unit"] = trigger_cycle_unit
-          upload_data["should_be"] = trigger_value
-          upload_data["new_count"] = count_new
-          upload_data["current_time"] = current_time
-          upload_data = urllib.urlencode(upload_data)
-          if trigger_cycle_unit == 0:
-            time_out = int(trigger_cycle_value)*60
-          else:
-            time_out = int(trigger_cycle_value) * 3600
-          req = urllib2.Request(url=get_process_url, data=upload_data)
-          res = urllib2.urlopen(req,timeout=time_out)
-          get_data = res.read()
-          if get_data == "ok":
-            logging.info("process is less than original!" + " process name is: " + str(key_word) + " " + " machine ip is: " + str(biz_ip))
-            # resend
-            if os.path.exists(resend_datas_m):
-              with open(resend_datas_m,"r") as fp:
-                result = fp.readlines()
-                result = json.dumps(result)
-                logging.info("转换成json串")
-                logging.info(result)
-              udpsocket.sendto(result,address)
-              os.remove(resend_datas_m)
-            break
-          else:
-            logging.info(get_data)
-            if (b-a) > time_out:
-              # resend
-              if os.path.exists(resend_datas_m):
-                with open(resend_datas_m, "r") as fp:
-                  result = fp.readlines()
-                  result = json.dumps(result)
-                udpsocket.sendto(result, address)
-                os.remove(resend_datas_m)
-              break
-            time.sleep(10)
-        except Exception as e:
-          if not resend_data_m:
-            resend_data_m = current_time + "," + id + "," + biz_ip + "," + manage_ip + "," + process_name + "," + key_word + "," + trigger_compare + "," + trigger_value + "," + trigger_level + "," + trigger_cycle_value + "," + trigger_cycle_unit + "," + trigger_value + "," + count_new
-            logging.info(resend_data_m)
-          logging.info("Storeinfo error. " + str(e))
-          if (b - a) > time_out:
-            with open(resend_datas_m,"a") as fd:
-              fd.write(resend_data_m)
-            break
-          time.sleep(10)
+    upload_data["id"] = id
+    upload_data["biz_ip"] = biz_ip
+    upload_data["manage_ip"] = manage_ip
+    upload_data["process_name"] = process_name
+    upload_data["key_word"] = key_word
+    upload_data["trigger_compare"] = trigger_compare
+    upload_data["trigger_value"] = trigger_value
+    upload_data["trigger_level"] = trigger_level
+    upload_data["trigger_cycle_value"] = trigger_cycle_value
+    upload_data["trigger_cycle_unit"] = trigger_cycle_unit
+    upload_data["should_be"] = trigger_value
+    upload_data["new_count"] = int(count_new)
+    upload_data["current_time"] = current_time
+    total_msg.append(upload_data)
+    if trigger_cycle_unit == 0:
+      time_out = int(trigger_cycle_value) * 60
     else:
-      a = time.time()
-      resend_data_h = ""
-      while True:
-        b = time.time()
-        try:
-          upload_data = {}
-          upload_data["id"] = id
-          upload_data["biz_ip"] = biz_ip
-          upload_data["manage_ip"] = manage_ip
-          upload_data["process_name"] = process_name
-          upload_data["key_word"] = key_word
-          upload_data["trigger_compare"] = trigger_compare
-          upload_data["trigger_value"] = trigger_value
-          upload_data["trigger_level"] = trigger_level
-          upload_data["trigger_cycle_value"] = trigger_cycle_value
-          upload_data["trigger_cycle_unit"] = trigger_cycle_unit
-          upload_data["should_be"] = trigger_value
-          upload_data["new_count"] = count_new
-          upload_data["current_time"] = current_time
-          upload_data = urllib.urlencode(upload_data)
-          if trigger_cycle_unit == 0:
-            time_out = int(trigger_cycle_value)*60
-          else:
-            time_out = int(trigger_cycle_value) * 3600
-          req = urllib2.Request(url=get_process_url, data=upload_data)
-          res = urllib2.urlopen(req, timeout=time_out)
-          get_data = res.read()
-          if get_data == "ok":
-            logging.info("process monitor is ok！" + " process name is: " + str(key_word) + " " + " machine ip is: " + str(biz_ip))
-            if os.path.exists(resend_datas_m):
-              with open(resend_datas_m,"r") as fp:
-                result = fp.readlines()
-                result = json.dumps(result)
-              udpsocket.sendto(result,address)
-              os.remove(resend_datas_m)
-            break
-          else:
-            logging.info(get_data)
-            if (b-a) > time_out:
-              if os.path.exists(resend_datas_m):
-                with open(resend_datas_m, "r") as fp:
-                  result = fp.readlines()
-                  result = json.dumps(result)
-                udpsocket.sendto(result, address)
-                os.remove(resend_datas_m)
-              break
-            time.sleep(10)
-        except Exception as e:
-          if not resend_data_h:
-            resend_data_h = current_time + "," + id + "," + biz_ip + "," + manage_ip + "," + process_name + "," + key_word + "," + trigger_compare + "," + trigger_value + "," + trigger_level + "," + trigger_cycle_value + "," + trigger_cycle_unit + "," + trigger_value + "," + count_new
-          logging.info("Storeinfo error. " + str(e))
-          if (b - a) > time_out:
-            with open(resend_datas_h,"a") as fd:
-              fd.write(resend_data_h)
-            break
-          time.sleep(10)
+      time_out = int(trigger_cycle_value) * 3600
+  total_msg_normal = json.dumps(total_msg)
+  send_total_msg["msg"] = total_msg_normal
+  send_total_msg_send = urllib.urlencode(send_total_msg)
+  a = time.time()
+  # resend_data_m = ""
+  while True:
+    try:
+      b = time.time()
+      req = urllib2.Request(url=get_process_url, data=send_total_msg_send)
+      res = urllib2.urlopen(req, timeout=time_out)
+      get_data = res.read()
+      if get_data == "ok":
+        logging.info("process is less than original!" + " process name is: " + str(key_word) + " " + " machine ip is: " + str(biz_ip))
+        # resend
+        if os.path.exists(resend_datas_m):
+          with open(resend_datas_m, "r") as fp:
+            result = fp.readlines()
+            result = json.dumps(result)
+            logging.info("转换成json串")
+            logging.info(result)
+          udpsocket.sendto(result, address)
+          os.remove(resend_datas_m)
+        break
+      else:
+        logging.info(get_data)
+        if (b - a) > time_out:
+          with open(resend_datas_m, "a") as fd:
+            for x in total_msg:
+              fd.write(json.dumps(x) + "\n")
+          break
+        time.sleep(10)
+    except Exception as e:
+      logging.info("Storeinfo error. " + str(e))
+      if (b - a) > time_out:
+        with open(resend_datas_m, "a") as fd:
+          for x in total_msg:
+            fd.write(json.dumps(x) + "\n")
+        break
+      time.sleep(10)
 fun()
