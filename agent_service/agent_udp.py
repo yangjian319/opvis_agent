@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 # @Time  : 2018/7/4 9:25
-# @Author: yangjian
+# @Author: running
 # @File  : agent_udp.py
-# Agent程序主文件，包括判断本机属于哪个机房，上传本机authorized_keys文件的md5值，上传本机IP以及已安装插件，主机关系上传
-# 接收指令调用update.py对插件进行管理，以及调用agentupdate.py对agent整个程序进行升级
 
 import os
 import sys
@@ -23,7 +21,6 @@ import commands
 import threading
 from logging.handlers import TimedRotatingFileHandler
 
-
 VERSION = 3
 # log
 if not os.path.exists("/home/opvis/utils/log"):
@@ -39,7 +36,6 @@ format_str = '%(asctime)s %(levelname)s %(message)s '
 formatter = logging.Formatter(format_str, datefmt)
 fh.setFormatter(formatter)
 logger.addHandler(fh)
-
 
 def daemon_process():
   try:
@@ -73,29 +69,41 @@ def post_md5(jifangip):
   logging.info("Upload MD5 to proxy successfully: " + str(data))
 
 def check_sudoers_md5():
-  while True:
-    with open("/home/opvis/utils/agent.lock", "r") as fd:
-      proxy_ip = fd.readline().split(":")[0]
-    post_sudoers_url = "http://" + proxy_ip + ":9995" + "/check_agent_sudo/"
-    (status, md5) = commands.getstatusoutput("sudo md5sum /etc/sudoers|awk '{print $1}'")
-    if not os.path.exists(sudoers_original_md5):
-      with open(sudoers_original_md5, "w") as fd:
-        fd.write(md5)
-    with open(sudoers_original_md5,"r") as fd:
-      original_md5 = fd.readline()
-    if md5 != original_md5:
-      req_data = {}
-      req_data['original_md5'] = original_md5
-      req_data['new_md5'] = md5
-      try:
-        args_restful = urllib.urlencode(req_data)
-        req = urllib2.Request(url=post_sudoers_url, data=args_restful)
-        res = urllib2.urlopen(req, timeout=70)
-        data = res.read()
-      except Exception as e:
-        logging.info("Post sudoers md5 error: " + str(e) + "-- check_sudoers_md5")
-      logging.info("Post sudoers md5 successfully: " + str(data) + "-- check_sudoers_md5()")
-    time.sleep(float(240))
+    while True:
+      if os.path.exists(sudoers_original_md5):
+        with open("/home/opvis/utils/agent.lock", "r") as fd:
+          proxy_ip = fd.readline().split(":")[0]
+        post_sudoers_url = "http://" + proxy_ip + ":9995" + "/check_agent_sudo/"
+        with open(sudoers_original_md5, "r") as fd:
+          original_md5 = fd.readline()
+        (status, md5) = commands.getstatusoutput("sudo md5sum /etc/sudoers|awk '{print $1}'")
+        logging.info(original_md5)
+        logging.info(md5)
+        if md5 != original_md5:
+          ips = ""
+          allips = get_all_ips()
+          for item in allips:
+            hip = re_format_ip(item)
+            out = read_ip(hip)
+            out.replace("\n", "")
+            out.replace("\r", "")
+            if out == "127.0.0.1":
+              continue
+            ips += out
+            ips += ","
+          ip = {"ip": ips}
+          try:
+            args_restful = urllib.urlencode(ip)
+            req = urllib2.Request(url=post_sudoers_url, data=args_restful)
+            res = urllib2.urlopen(req, timeout=70)
+            data = res.read()
+          except Exception as e:
+            logging.info("Post sudoers md5 error: " + str(e) + "-- check_sudoers_md5")
+          logging.info("Post sudoers md5 successfully: " + str(data) + "-- check_sudoers_md5()")
+        time.sleep(float(3600))
+      else:
+        break
+        logging.info("checksudoers.py is not installed.")
 
 # get pluginname
 def file_name(plugin_dir):
@@ -199,7 +207,6 @@ def check_version():
   except Exception as e:
     logging.info("Upgrade agent error: " + str(e))
 
-
 # report heart
 def report_heart():
   try:
@@ -281,8 +288,6 @@ def getAllprocess():
       ips += ","
     ip = {"ip":ips}
     ip = urllib.urlencode(ip)
-      #ips.append(out)
-      #ip = ",".join(ips)
     req = urllib2.Request(url=get_process_url, data=ip)
     res = urllib2.urlopen(req)
     get_data = res.read()
@@ -297,19 +302,13 @@ def gen_crontab(i,yanshi):
     os.system(cmd)
     time.sleep(yanshi)
 
-
 def gen_Cron_first_minute():
   try:
     with open(allcycle_a, "r") as fd:
       lines = fd.readlines()
       for i in lines:
-        logging.info("第一次定时任务之分钟")
-        logging.info(i)
-        # format of i --> "trigger_cycle_value": 2m
         if i.split(":")[1].strip(" ")[-2:-1] == "m":
-          logging.info(i.split(":")[1].strip(" ")[-2:-1])
           i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
-          logging.info(i)
           yanshi = int(i.split("=")[1].strip(" ")[:-1])*60
           random_time = random.randint(1,59)
           random_time = random_time + round(random.random(),2)
@@ -330,13 +329,8 @@ def gen_Cron_first_hour():
     with open(allcycle_a, "r") as fd:
       lines = fd.readlines()
       for i in lines:
-        logging.info("第一次定时任务之小时")
-        logging.info(i)
-        # format of i --> "trigger_cycle_value": 2h
         if i.split(":")[1].strip(" ")[-2:-1] == "h":
-          logging.info(i.split(":")[1].strip(" ")[-2:-1])
           i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
-          logging.info(i)
           yanshi = int(i.split("=")[1].strip(" ")[:-1])*3600
           random_time = random.randint(1,59)
           random_time = random_time + round(random.random(), 2)
@@ -456,20 +450,15 @@ def get_New_cycle():
       fa.close()
       fb.close()
       fc.close()
-      if len(stra) < len(strb):  # 添加定时任务
+      if len(stra) < len(strb):
         with open(allcycle_c, "r") as fd:
           lines = fd.readlines()
-          logging.info(lines)
         for i in lines:
-          logging.info("新增时添加定时任务")
-          logging.info(i)
           if i.split(":")[1].strip(" ")[-2:-1] == "m":  # 如果是m
             i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
             yanshi = int(i.split("=")[1].strip(" ")[:-1]) * 60
-            logging.info(yanshi)
             random_time = random.randint(1, 59)
             random_time = random_time + round(random.random(), 2)
-            logging.info(random_time)
             time.sleep(random_time)
             pid = os.fork()
             if pid == 0:
@@ -493,30 +482,18 @@ def get_New_cycle():
                 fd.write(pidfile)
                 fd.write("\n")
               gen_crontab(i, yanshi)
-      elif len(stra) > len(strb):  # 删除定时任务
+      elif len(stra) > len(strb):
         del_strc = set(stra) - set(strb)
-        logging.info(del_strc)
         for i in del_strc:
-          logging.info("删除定时任务打印i")
-          logging.info(i)
-          logging.info(type(i))
           dic_minute_hour = {}
           del_minute_hour = i.split(":")[1].strip(" ")
 
           with open(pid_of_process, "r") as fd:
             for line in fd.readlines():
               line = line.replace("\n", "").split(":")
-              logging.info(line)
-              logging.info(dic_minute_hour)
               dic_minute_hour[line[0]] = line[1]
-          logging.info(dic_minute_hour)
-
           del_pid = dic_minute_hour[del_minute_hour]
-          logging.info(del_pid)
-          logging.info("删除定时任务")
-          logging.info(del_pid)
           cmd = "kill -9 " + del_pid
-          logging.info(cmd)
           os.system(cmd)
           cron_del_cmd = "sed -i '/{0}/d' {1}".format(del_pid, pid_of_process)
           os.system(cron_del_cmd)
@@ -558,13 +535,25 @@ def main():
     dic = json.loads(data)
     logging.info("Change data to dict: " + str(dic))
     if "pstatus" in dic:
-      get_New_cycle()
-      os.remove(allcycle_a)
-      os.rename(allcycle_b, allcycle_a)
-      os.remove(allcycle_c)
-    elif "status" in dic and dic["status"] == 8:
+      pid = os.fork()
+      if pid == 0:
+        get_New_cycle()
+        os.remove(allcycle_a)
+        os.rename(allcycle_b, allcycle_a)
+        os.remove(allcycle_c)
+        sys.exit()
+      else:
+        continue
+    elif "status" in dic and dic["status"] == 8:  # 生成sudoers的md5值，存入文件之后再启动线程
       try:
+        (status, md5) = commands.getstatusoutput("sudo md5sum /etc/sudoers|awk '{print $1}'")
+        if not os.path.exists(sudoers_original_md5):
+          with open(sudoers_original_md5, "w") as fd:
+            fd.write(md5)
         check_sudoers_md5 = threading.Thread(target=check_sudoers_md5, args=())
+        random_time = random.randint(1, 59)
+        random_time = random_time + round(random.random(), 2)
+        time.sleep(random_time)
         check_sudoers_md5.start()
       except Exception as e:
         logging.info("Check sudoers md5, thread error: " + str(e) + "-- check_sudoers_md5()")
@@ -612,14 +601,12 @@ if __name__=='__main__':
     os.makedirs("/home/opvis/utils/pm")
   if not os.path.exists("/home/opvis/utils/cron"):
     os.mkdir("/home/opvis/utils/cron")
-
   try:
     address = ("0.0.0.0", 9997)
     udpsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udpsocket.bind(address)
   except Exception as e:
     logging.info("Udp connection error: " + str(e))
-
   iplist = ["172.30.130.137:18382", "172.30.130.126:18382", "10.124.5.163:18382", "10.144.2.248:18382",
             "10.123.30.177:18382", "172.30.194.121:18382", "172.16.5.20:18382", "10.181.1.0:18382"]
   for ip in iplist:
