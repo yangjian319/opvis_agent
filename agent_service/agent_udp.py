@@ -209,8 +209,8 @@ def check_version():
 
 # report heart
 def report_heart():
-  try:
-    while True:
+  while True:
+    try:
       if os.path.exists("/home/opvis/utils/agent.lock"):
         with open("/home/opvis/utils/agent.lock", "r") as fd:
           jifangip = fd.read()
@@ -241,8 +241,8 @@ def report_heart():
       if data:
         logging.info("Report heart to proxy success: " + str(data))
         time.sleep(float(240))
-  except Exception as e:
-    logging.info("Report heart to proxy error: " + str(e))
+    except Exception as e:
+      logging.info("Report heart to proxy error: " + str(e))
 
 def call_plugin(status,tmp_url,dic,plugin_name,data2):
   dirs = os.listdir(plugin_dir)
