@@ -60,9 +60,9 @@ def check_process(ll):
   udpsocket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
   time_out=0
   send_total_msg = {}
-  total_msg = [] # 所有进程信息，最后发给transfer
+  total_msg = []
   for x in ll:
-    upload_data = {}  # 每一个进程信息
+    upload_data = {}
     id = x.get("id")
     biz_ip = x.get("biz_ip")
     manage_ip = x.get("manage_ip")
@@ -99,7 +99,6 @@ def check_process(ll):
   send_total_msg["msg"] = total_msg_normal
   send_total_msg_send = urllib.urlencode(send_total_msg)
   a = time.time()
-  # resend_data_m = ""
   while True:
     try:
       b = time.time()
@@ -112,10 +111,8 @@ def check_process(ll):
         if os.path.exists(resend_datas_m):
           with open(resend_datas_m, "r") as fp:
             result = fp.readlines()
-            result = json.dumps(result)
-            logging.info("转换成json串")
-            logging.info(result)
-          udpsocket.sendto(result, address)
+            result1 = json.dumps(result)
+          udpsocket.sendto(result1, address)
           os.remove(resend_datas_m)
         break
       else:
