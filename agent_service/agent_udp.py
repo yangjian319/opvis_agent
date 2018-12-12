@@ -158,8 +158,8 @@ def re_format_ip(addr):
 
 # Upload installed plugins and get upgrade agent informations
 def sendFileName():
-  try:
-    while True:
+  while True:
+    try:
       requrl = "http://" + jifangip + "/umsproxy/autoProxyPlugIn/sendFileName"
       filenames = file_name(plugin_dir)
       name = {}
@@ -171,7 +171,7 @@ def sendFileName():
         out.replace("\r", "")
         if out == "127.0.0.1":
           continue
-        name = {"names":filenames}
+        name = {"names": filenames}
         name["ip"] = out
         name = urllib.urlencode(name)
         logging.info("Upload ip and plugin name: " + str(name))
@@ -183,18 +183,18 @@ def sendFileName():
         logging.info("Upload ip and plugin name to proxy error: " + str(e))
       logging.info("Upload ip and plugin name to proxy success: " + str(data))
       time.sleep(float(240))
-  except Exception as e:
-    logging.info("Upload the machine IP and installed plugins to the proxy error: " + str(e))
+    except Exception as e:
+      logging.info("Upload the machine IP and installed plugins to the proxy error: " + str(e))
+      time.sleep(float(240))
 
 def check_version():
-  try:
-    while True:
+  while True:
+    try:
       agentrequrl = "http://" + jifangip + "/umsproxy/autoProxyPlugIn/checkAgentVersion"
       data = ""
       req = urllib2.Request(url=agentrequrl, data=data)
       res = urllib2.urlopen(req)
       result = res.read()
-      logging.info("check_version")
       if result:
         logging.info("Get data from proxy when upgrade agent: " + str(result))
         result1 = json.loads(result)
@@ -204,8 +204,9 @@ def check_version():
           udpsocket.sendto(send_to_server, address)
           udpsocket.close()
       time.sleep(float(240))
-  except Exception as e:
-    logging.info("Upgrade agent error: " + str(e))
+    except Exception as e:
+      logging.info("Upgrade agent error: " + str(e))
+      time.sleep(float(240))
 
 # report heart
 def report_heart():
@@ -229,7 +230,6 @@ def report_heart():
           continue
         ips.append(out)
         ip["ip"] = ",".join(ips)
-      logging.info(ip)
       ip = urllib.urlencode(ip)
       requrl = "http://" + jifangip + "/umsproxy/autoProxyPlugIn/sendIp"
       try:
@@ -243,6 +243,7 @@ def report_heart():
         time.sleep(float(240))
     except Exception as e:
       logging.info("Report heart to proxy error: " + str(e))
+      time.sleep(float(240))
 
 def call_plugin(status,tmp_url,dic,plugin_name,data2):
   dirs = os.listdir(plugin_dir)
@@ -380,12 +381,12 @@ def get_Old_cycle():
       logging.info(str(trigger_cycle_value_hour))
 
       for cycle in set(trigger_cycle_value_minute):
-        with open(allcycle_a, "a") as fd:  # format  "trigger_cycle_value": 1
+        with open(allcycle_a, "a") as fd:
           fd.write('"trigger_cycle_value": ' + str(cycle) + "m")
           fd.write("\n")
 
       for cycle in set(trigger_cycle_value_hour):
-        with open(allcycle_a, "a") as fd:  # format  "trigger_cycle_value": 1
+        with open(allcycle_a, "a") as fd:
           fd.write('"trigger_cycle_value": ' + str(cycle) + "h")
           fd.write("\n")
 
@@ -424,12 +425,12 @@ def get_New_cycle():
           trigger_cycle_value_hour.append(str(x["trigger_cycle_value"]))
 
       for cycle in set(trigger_cycle_value_minute):
-        with open(allcycle_b, "a") as fd:  # format  "trigger_cycle_value": 1m
+        with open(allcycle_b, "a") as fd:
           fd.write('"trigger_cycle_value": ' + str(cycle) + "m")
           fd.write("\n")
 
       for cycle in set(trigger_cycle_value_hour):
-        with open(allcycle_b, "a") as fd:  # format  "trigger_cycle_value": 1h
+        with open(allcycle_b, "a") as fd:
           fd.write('"trigger_cycle_value": ' + str(cycle) + "h")
           fd.write("\n")
       stra = []
@@ -454,7 +455,7 @@ def get_New_cycle():
         with open(allcycle_c, "r") as fd:
           lines = fd.readlines()
         for i in lines:
-          if i.split(":")[1].strip(" ")[-2:-1] == "m":  # 如果是m
+          if i.split(":")[1].strip(" ")[-2:-1] == "m":
             i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
             yanshi = int(i.split("=")[1].strip(" ")[:-1]) * 60
             random_time = random.randint(1, 59)
@@ -468,7 +469,7 @@ def get_New_cycle():
                 fd.write(pidfile)
                 fd.write("\n")
               gen_crontab(i, yanshi)
-          elif i.split(":")[1].strip(" ")[-2:-1] == "h":  # 如果是h
+          elif i.split(":")[1].strip(" ")[-2:-1] == "h":
             i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
             yanshi = int(i.split("=")[1].strip(" ")[:-1]) * 3600
             random_time = random.randint(1, 59)
@@ -487,7 +488,6 @@ def get_New_cycle():
         for i in del_strc:
           dic_minute_hour = {}
           del_minute_hour = i.split(":")[1].strip(" ")
-
           with open(pid_of_process, "r") as fd:
             for line in fd.readlines():
               line = line.replace("\n", "").split(":")
@@ -523,6 +523,7 @@ def main():
 
   # Get data from proxy
   while True:
+    logging.info("1")
     data, addr = udpsocket.recvfrom(2018)
     time_second = time.time()
     logging.info(addr)
@@ -544,7 +545,7 @@ def main():
         sys.exit()
       else:
         continue
-    elif "status" in dic and dic["status"] == 8:  # 生成sudoers的md5值，存入文件之后再启动线程
+    elif "status" in dic and dic["status"] == 8:
       try:
         (status, md5) = commands.getstatusoutput("sudo md5sum /etc/sudoers|awk '{print $1}'")
         if not os.path.exists(sudoers_original_md5):
@@ -568,12 +569,15 @@ def main():
           callplugin.start()
         except Exception, e:
           logging.info("Call the plugin error: " + str(e))
+        logging.info("5")
       else:
         name = dic.get("name")
         if name == "updateAgent":
+          logging.info("6")
           break
   # Upgrade agent
   udpsocket.close()
+  logging.info("7")
   try:
     cmd = "python /home/opvis/opvis_agent/agent_service/update/agentupdate.py" + " " + data2
     ret = os.system(cmd)
@@ -599,16 +603,16 @@ if __name__=='__main__':
     os.makedirs("/home/opvis/utils")
   if not os.path.exists("/home/opvis/utils/pm"):
     os.makedirs("/home/opvis/utils/pm")
-  if not os.path.exists("/home/opvis/utils/cron"):
-    os.mkdir("/home/opvis/utils/cron")
   try:
     address = ("0.0.0.0", 9997)
     udpsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udpsocket.bind(address)
   except Exception as e:
     logging.info("Udp connection error: " + str(e))
-  iplist = ["172.30.130.137:18382", "172.30.130.126:18382", "10.124.5.163:18382", "10.144.2.248:18382",
-            "10.123.30.177:18382", "172.30.194.121:18382", "172.16.5.20:18382", "10.181.1.0:18382"]
+  #iplist = ["172.30.130.137:18382", "172.30.130.126:18382", "10.124.5.163:18382", "10.144.2.248:18382",
+  #          "10.123.30.177:18382", "172.30.194.121:18382", "172.16.5.20:18382", "10.181.1.0:18382"]
+  iplist = ["10.181.45.7:18382"]
+
   for ip in iplist:
     try:
       so = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
