@@ -105,7 +105,7 @@ def check_process(ll):
       res = urllib2.urlopen(req, timeout=time_out)
       get_data = res.read()
       if get_data == "ok":
-        logging.info("process is less than original!" + " process name is: " + str(key_word) + " " + " machine ip is: " + str(biz_ip))
+        logging.info("process is ok!" + " process name is: " + str(key_word) + " " + " machine ip is: " + str(biz_ip))
         # resend
         if os.path.exists(resend_datas_m):
           with open(resend_datas_m, "r") as fp:
