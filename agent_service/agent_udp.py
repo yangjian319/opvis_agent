@@ -601,6 +601,7 @@ if __name__=='__main__':
 
   if not os.path.exists("/home/opvis/utils"):
     os.makedirs("/home/opvis/utils")
+    os.makedirs("/home/opvis/utils/log")
   if not os.path.exists("/home/opvis/utils/pm"):
     os.makedirs("/home/opvis/utils/pm")
   try:
