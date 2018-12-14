@@ -307,19 +307,19 @@ def gen_Cron_first_minute():
       lines = fd.readlines()
       for i in lines:
         if i.split(":")[1].strip(" ")[-2:-1] == "m":
-          i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
-          yanshi = int(i.split("=")[1].strip(" ")[:-1])*60
+          j = "cycle=" + i.split(":")[1].strip(" ")[:-1]
+          yanshi = int(j.split("=")[1].strip(" ")[:-1])*60
           random_time = random.randint(1,59)
           random_time = random_time + round(random.random(),2)
           time.sleep(random_time)
           pid = os.fork()
           if pid == 0:
-            sub_process_id = os.getpid()
-            pidfile = i.split("=")[1] + ":" + str(sub_process_id)
+            sub_process_id = os.getpid()  # j = "cycle=231h"
+            pidfile = j.split("=")[1] + ":" + str(sub_process_id)
             with open(pid_of_process, "a") as fd:
               fd.write(pidfile)
               fd.write("\n")
-            gen_crontab(i, yanshi)
+            gen_crontab(j, yanshi)
   except Exception as e:
     logging.info("Error," + str(e) + "--gen_Cron_first_minute()")
 
@@ -329,19 +329,19 @@ def gen_Cron_first_hour():
       lines = fd.readlines()
       for i in lines:
         if i.split(":")[1].strip(" ")[-2:-1] == "h":
-          i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
-          yanshi = int(i.split("=")[1].strip(" ")[:-1])*3600
+          j = "cycle=" + i.split(":")[1].strip(" ")[:-1]
+          yanshi = int(j.split("=")[1].strip(" ")[:-1])*3600
           random_time = random.randint(1,59)
           random_time = random_time + round(random.random(), 2)
           time.sleep(random_time)
           pid = os.fork()
           if pid == 0:
             sub_process_id = os.getpid()
-            pidfile = i.split("=")[1] + ":" + str(sub_process_id)
+            pidfile = j.split("=")[1] + ":" + str(sub_process_id)
             with open(pid_of_process, "a") as fd:
               fd.write(pidfile)
               fd.write("\n")
-            gen_crontab(i, yanshi)
+            gen_crontab(j, yanshi)
   except Exception as e:
     logging.info("Error," + str(e) + "--gen_Cron_first_hour()")
 
@@ -453,33 +453,33 @@ def get_New_cycle():
           lines = fd.readlines()
         for i in lines:
           if i.split(":")[1].strip(" ")[-2:-1] == "m":
-            i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
-            yanshi = int(i.split("=")[1].strip(" ")[:-1]) * 60
+            j = "cycle=" + i.split(":")[1].strip(" ")[:-1]
+            yanshi = int(j.split("=")[1].strip(" ")[:-1]) * 60
             random_time = random.randint(1, 59)
             random_time = random_time + round(random.random(), 2)
             time.sleep(random_time)
             pid = os.fork()
             if pid == 0:
               sub_process_id = os.getpid()
-              pidfile = i.split("=")[1] + ":" + str(sub_process_id)
+              pidfile = j.split("=")[1] + ":" + str(sub_process_id)
               with open(pid_of_process, "a") as fd:
                 fd.write(pidfile)
                 fd.write("\n")
-              gen_crontab(i, yanshi)
+              gen_crontab(j, yanshi)
           elif i.split(":")[1].strip(" ")[-2:-1] == "h":
-            i = "cycle=" + i.split(":")[1].strip(" ")[:-1]
-            yanshi = int(i.split("=")[1].strip(" ")[:-1]) * 3600
+            j = "cycle=" + i.split(":")[1].strip(" ")[:-1]
+            yanshi = int(j.split("=")[1].strip(" ")[:-1]) * 3600
             random_time = random.randint(1, 59)
             random_time = random_time + round(random.random(), 2)
             time.sleep(random_time)
             pid = os.fork()
             if pid == 0:
               sub_process_id = os.getpid()
-              pidfile = i.split("=")[1] + ":" + str(sub_process_id)
+              pidfile = j.split("=")[1] + ":" + str(sub_process_id)
               with open(pid_of_process, "a") as fd:
                 fd.write(pidfile)
                 fd.write("\n")
-              gen_crontab(i, yanshi)
+              gen_crontab(j, yanshi)
       elif len(stra) > len(strb):
         del_strc = set(stra) - set(strb)
         for i in del_strc:
