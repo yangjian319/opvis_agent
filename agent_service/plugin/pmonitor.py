@@ -29,9 +29,8 @@ logger.addHandler(fh)
 
 arg = sys.argv[1]
 arg_number = arg.split("=")[1].replace("\n","")[-2:-1]
-logging.info(str(arg_number))
 arg_time = arg.split("=")[1].replace("\n","")[-1:]
-logging.info(str(arg_time))
+
 
 allitems = "/home/opvis/utils/pm/allitems"
 resend_datas_m = "/home/opvis/utils/pm/resend_datas_m"
@@ -116,7 +115,6 @@ def check_process(ll):
           os.remove(resend_datas_m)
         break
       else:
-        logging.info(get_data)
         if (b - a) > time_out:
           with open(resend_datas_m, "a") as fd:
             for x in total_msg:
