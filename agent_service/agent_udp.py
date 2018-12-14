@@ -77,8 +77,6 @@ def check_sudoers_md5():
         with open(sudoers_original_md5, "r") as fd:
           original_md5 = fd.readline()
         (status, md5) = commands.getstatusoutput("sudo md5sum /etc/sudoers|awk '{print $1}'")
-        logging.info(original_md5)
-        logging.info(md5)
         if md5 != original_md5:
           ips = ""
           allips = get_all_ips()
@@ -266,7 +264,7 @@ def call_plugin(status,tmp_url,dic,plugin_name,data2):
       except Exception as e:
         logging.info("Interface feedback upload hostinformation failed: " + str(e))
     else:
-      logging.info("Plugin is not install: topologic.")
+      logging.info("Plugin is not installed: topologic.")
   else:
     cmd = "python /home/opvis/utils/plugin/update.py" + " " + data2
     ret = os.system(cmd)
@@ -378,7 +376,6 @@ def get_Old_cycle():
           trigger_cycle_value_minute.append(str(x["trigger_cycle_value"]))
         else:
           trigger_cycle_value_hour.append(str(x["trigger_cycle_value"]))
-      logging.info(str(trigger_cycle_value_hour))
 
       for cycle in set(trigger_cycle_value_minute):
         with open(allcycle_a, "a") as fd:
@@ -523,7 +520,6 @@ def main():
 
   # Get data from proxy
   while True:
-    logging.info("1")
     data, addr = udpsocket.recvfrom(2018)
     time_second = time.time()
     logging.info(addr)
@@ -569,11 +565,9 @@ def main():
           callplugin.start()
         except Exception, e:
           logging.info("Call the plugin error: " + str(e))
-        logging.info("5")
       else:
         name = dic.get("name")
         if name == "updateAgent":
-          logging.info("6")
           break
   # Upgrade agent
   udpsocket.close()
