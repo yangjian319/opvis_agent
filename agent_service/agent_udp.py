@@ -18,10 +18,13 @@ import urllib
 import urllib2
 import logging
 import commands
+import datetime
 import threading
+import subprocess
+import ConfigParser
 from logging.handlers import TimedRotatingFileHandler
 
-VERSION = 3
+VERSION = 4
 # log
 if not os.path.exists("/home/opvis/utils/log"):
   os.makedirs("/home/opvis/utils/log")
@@ -77,6 +80,7 @@ def check_sudoers_md5():
         with open(sudoers_original_md5, "r") as fd:
           original_md5 = fd.readline()
         (status, md5) = commands.getstatusoutput("sudo md5sum /etc/sudoers|awk '{print $1}'")
+        # 文件权限、属主、文件组、文件位置、文件内容
         if md5 != original_md5:
           ips = ""
           allips = get_all_ips()
@@ -98,7 +102,12 @@ def check_sudoers_md5():
           except Exception as e:
             logging.info("Post sudoers md5 error: " + str(e) + "-- check_sudoers_md5")
           logging.info("Post sudoers md5 successfully: " + str(data) + "-- check_sudoers_md5()")
+        # c = ConfigParser.ConfigParser()
+        # c.read("conf.ini")
+        # check_sudoers_md5_cycle = c.get("cycle", "check_sudoers_md5_cycle")
+        # time.sleep(float(check_sudoers_md5_cycle))
         time.sleep(float(3600))
+
       else:
         break
         logging.info("checksudoers.py is not installed.")
@@ -157,6 +166,9 @@ def re_format_ip(addr):
 # Upload installed plugins and get upgrade agent informations
 def sendFileName():
   while True:
+    # c = ConfigParser.ConfigParser()
+    # c.read("conf.ini")
+    # send_filename_cycle = c.get("cycle", "send_filename_cycle")
     try:
       requrl = "http://" + jifangip + "/umsproxy/autoProxyPlugIn/sendFileName"
       filenames = file_name(plugin_dir)
@@ -181,12 +193,17 @@ def sendFileName():
         logging.info("Upload ip and plugin name to proxy error: " + str(e))
       logging.info("Upload ip and plugin name to proxy success: " + str(data))
       time.sleep(float(240))
+      # time.sleep(float(send_filename_cycle))
     except Exception as e:
       logging.info("Upload the machine IP and installed plugins to the proxy error: " + str(e))
       time.sleep(float(240))
+      # time.sleep(float(send_filename_cycle))
 
 def check_version():
   while True:
+    # c = ConfigParser.ConfigParser()
+    # c.read("conf.ini")
+    # check_version_cycle = c.get("cycle", "check_version_cycle")
     try:
       agentrequrl = "http://" + jifangip + "/umsproxy/autoProxyPlugIn/checkAgentVersion"
       data = ""
@@ -202,13 +219,18 @@ def check_version():
           udpsocket.sendto(send_to_server, address)
           udpsocket.close()
       time.sleep(float(240))
+      # time.sleep(float(check_version_cycle))
     except Exception as e:
       logging.info("Upgrade agent error: " + str(e))
       time.sleep(float(240))
+      # time.sleep(float(check_version_cycle))
 
 # report heart
 def report_heart():
   while True:
+    # c = ConfigParser.ConfigParser()
+    # c.read("conf.ini")
+    # report_heart_cycle = c.get("cycle", "report_heart_cycle")
     try:
       if os.path.exists("/home/opvis/utils/agent.lock"):
         with open("/home/opvis/utils/agent.lock", "r") as fd:
@@ -239,9 +261,11 @@ def report_heart():
       if data:
         logging.info("Report heart to proxy success: " + str(data))
         time.sleep(float(240))
+        # time.sleep(float(report_heart_cycle))
     except Exception as e:
       logging.info("Report heart to proxy error: " + str(e))
       time.sleep(float(240))
+      # time.sleep(float(report_heart_cycle))
 
 def call_plugin(status,tmp_url,dic,plugin_name,data2):
   dirs = os.listdir(plugin_dir)
@@ -314,7 +338,7 @@ def gen_Cron_first_minute():
           time.sleep(random_time)
           pid = os.fork()
           if pid == 0:
-            sub_process_id = os.getpid()  # j = "cycle=231h"
+            sub_process_id = os.getpid()
             pidfile = j.split("=")[1] + ":" + str(sub_process_id)
             with open(pid_of_process, "a") as fd:
               fd.write(pidfile)
@@ -353,16 +377,21 @@ def get_Old_cycle():
     os.remove(allitems)
   try:
     while True:
+      # c = ConfigParser.ConfigParser()
+      # c.read("conf.ini")
+      # get_old_cycle = c.get("cycle", "get_old_cycle")
       try:
         get_data = getAllprocess()
         if get_data:
           break
         else:
           time.sleep(10)
+          # time.sleep(get_old_cycle)
           continue
       except Exception as e:
         logging.info("Can't connect to proxy")
         time.sleep(10)
+        # time.sleep(get_old_cycle)
     if get_data:
       for i in json.loads(get_data):
         with open(allitems, "a") as fd:
@@ -398,6 +427,9 @@ def get_Old_cycle():
 
 def get_New_cycle():
   while True:
+    # c = ConfigParser.ConfigParser()
+    # c.read("conf.ini")
+    # get_new_cycle = c.get("cycle", "get_new_cycle")
     try:
       get_data = getAllprocess()
       if get_data:
@@ -405,6 +437,7 @@ def get_New_cycle():
     except Exception as e:
       logging.info("Can't connect to proxy")
       time.sleep(10)
+      # time.sleep(get_new_cycle)
   try:
     if get_data:
       os.remove(allitems)
@@ -494,8 +527,128 @@ def get_New_cycle():
           os.system(cmd)
           cron_del_cmd = "sed -i '/{0}/d' {1}".format(del_pid, pid_of_process)
           os.system(cron_del_cmd)
+      elif len(stra) == len(strb):
+        del_process = set(stra) - set(strb)
+        if del_process:
+          for x in del_process:
+            del_cycle = x.split(":")[1].strip(" ")
+          with open(pid_of_process, "r") as fd:
+            for line in fd.readlines():
+              if line.startswith(del_cycle):
+                del_pid_number = line.split(":")[1].strip()
+                cmd = "kill -9 " + str(del_pid_number)
+                os.system(cmd)
+                cron_del_cmd = "sed -i '/{0}/d' {1}".format(del_pid_number, pid_of_process)
+                os.system(cron_del_cmd)
+        add_process = set(strb) - set(stra)
+        if add_process:
+          for x in add_process:  # "trigger_cycle_value: 2h"
+            if x.split(":")[1].strip(" ")[-1:] == "m":
+              j = "cycle=" + x.split(":")[1].strip(" ")
+              yanshi = int(j.split("=")[1].strip(" ")[:-1]) * 60
+              random_time = random.randint(1, 59)
+              random_time = random_time + round(random.random(), 2)
+              time.sleep(random_time)
+              pid = os.fork()
+              if pid == 0:
+                sub_process_id = os.getpid()
+                pidfile = j.split("=")[1] + ":" + str(sub_process_id)
+                with open(pid_of_process, "a") as fd:
+                  fd.write(pidfile)
+                  fd.write("\n")
+                gen_crontab(j, yanshi)
+            elif x.split(":")[1].strip(" ")[-1:] == "h":
+              j = "cycle=" + x.split(":")[1].strip(" ")
+              yanshi = int(j.split("=")[1].strip(" ")[:-1]) * 3600
+              random_time = random.randint(1, 59)
+              random_time = random_time + round(random.random(), 2)
+              time.sleep(random_time)
+              pid = os.fork()
+              if pid == 0:
+                sub_process_id = os.getpid()
+                pidfile = j.split("=")[1] + ":" + str(sub_process_id)
+                with open(pid_of_process, "a") as fd:
+                  fd.write(pidfile)
+                  fd.write("\n")
+                gen_crontab(j, yanshi)
   except Exception as e:
     logging.info("Error," + str(e) + "get_New_cycle()")
+
+# 在线调试
+def online_debug(dic):
+  logging.info("shell cmd: " + dic)
+  with open("/home/opvis/utils/agent.lock", "r") as fd:
+    proxy_ip = fd.readline().split(":")[0]
+  url = "http://" + proxy_ip + ":9995" + "/online_debug/"
+  shell_cmd = dic["data"]
+  execute_time = dic["execute_time"]
+  if execute_time:
+    end_time = datetime.datetime.now() + datetime.timedelta(seconds=execute_time)
+  else:
+    end_time = datetime.datetime.now() + datetime.timedelta(seconds=60)
+  sub = subprocess.Popen(shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  while True:
+    if sub.poll() is not None:
+      break
+    time.sleep(0.1)
+    if end_time <= datetime.datetime.now():
+      overtime_alarm = 2
+      sub.kill()
+    else:
+      overtime_alarm = 1
+    (stdoutput, erroutput) = sub.communicate()
+    if stdoutput:
+      result = stdoutput
+    else:
+      result = erroutput
+  data = {}
+  data["id"] = dic["id"]
+  data["result"] = result
+  data["have_result"] = overtime_alarm
+  data = urllib.urlencode(data)
+  req = urllib2.Request(url=url, data=data)
+  res = urllib2.urlopen(req)
+  #get_data = res.read()
+
+def do_data(data,addr,dic,data2):
+  if "pstatus" in dic:
+    pid = os.fork()
+    if pid == 0:
+      get_New_cycle()
+      os.remove(allcycle_a)
+      os.rename(allcycle_b, allcycle_a)
+      os.remove(allcycle_c)
+      sys.exit()
+  elif "status" in dic and dic["status"] == 8:
+    try:
+      (status, md5) = commands.getstatusoutput("sudo md5sum /etc/sudoers|awk '{print $1}'")
+      if not os.path.exists(sudoers_original_md5):
+        with open(sudoers_original_md5, "w") as fd:
+          fd.write(md5)
+      check_sudoers_md5s = threading.Thread(target=check_sudoers_md5, args=())
+      random_time = random.randint(1, 59)
+      random_time = random_time + round(random.random(), 2)
+      time.sleep(random_time)
+      check_sudoers_md5s.start()
+    except Exception as e:
+      logging.info("Check sudoers md5, thread error: " + str(e) + "-- check_sudoers_md5()")
+  elif dic["status"] == 9:  # 在线调试
+    try:
+      online_debugs = threading.Thread(target=online_debug, args=(dic,))
+      online_debugs.start()
+    except Exception as e:
+      logging.info("Online debug, error: " + str(e) + "-- ")
+  else:
+    if addr[0] != "127.0.0.1":
+      status = dic["pluginfo"]["status"]
+      tmp_url = dic["pluginfo"]["url"]
+      plugin_name = tmp_url.split("/")[-1]
+      try:
+        callplugin = threading.Thread(target=call_plugin, args=(status, tmp_url, dic, plugin_name, data2))
+        callplugin.daemon = True
+        callplugin.start()
+      except Exception, e:
+        logging.info("Call the plugin error: " + str(e))
 
 def main():
   try:
@@ -522,7 +675,6 @@ def main():
   while True:
     data, addr = udpsocket.recvfrom(2018)
     time_second = time.time()
-    logging.info(addr)
     logging.info("Time of data received: " + str(time_second))
     logging.info("Receive data from proxy: " + str(data))
     data1 = "{0}".format(data)
@@ -531,47 +683,15 @@ def main():
     data2 = lstr + data1 + rstr
     dic = json.loads(data)
     logging.info("Change data to dict: " + str(dic))
-    if "pstatus" in dic:
+    if data:
       pid = os.fork()
       if pid == 0:
-        get_New_cycle()
-        os.remove(allcycle_a)
-        os.rename(allcycle_b, allcycle_a)
-        os.remove(allcycle_c)
+        do_data(data,addr,dic,data2)
         sys.exit()
-      else:
-        continue
-    elif "status" in dic and dic["status"] == 8:
-      try:
-        (status, md5) = commands.getstatusoutput("sudo md5sum /etc/sudoers|awk '{print $1}'")
-        if not os.path.exists(sudoers_original_md5):
-          with open(sudoers_original_md5, "w") as fd:
-            fd.write(md5)
-        check_sudoers_md5 = threading.Thread(target=check_sudoers_md5, args=())
-        random_time = random.randint(1, 59)
-        random_time = random_time + round(random.random(), 2)
-        time.sleep(random_time)
-        check_sudoers_md5.start()
-      except Exception as e:
-        logging.info("Check sudoers md5, thread error: " + str(e) + "-- check_sudoers_md5()")
-    else:
-      if addr[0] != "127.0.0.1":
-        status = dic["pluginfo"]["status"]
-        tmp_url = dic["pluginfo"]["url"]
-        plugin_name = tmp_url.split("/")[-1]
-        try:
-          callplugin = threading.Thread(target=call_plugin, args=(status,tmp_url,dic,plugin_name,data2))
-          callplugin.daemon = True
-          callplugin.start()
-        except Exception, e:
-          logging.info("Call the plugin error: " + str(e))
-      else:
-        name = dic.get("name")
-        if name == "updateAgent":
-          break
-  # Upgrade agent
+      name = dic.get("name")
+      if name == "updateAgent":
+        break
   udpsocket.close()
-  logging.info("7")
   try:
     cmd = "python /home/opvis/opvis_agent/agent_service/update/agentupdate.py" + " " + data2
     ret = os.system(cmd)
