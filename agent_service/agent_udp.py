@@ -684,13 +684,13 @@ def main():
     dic = json.loads(data)
     logging.info("Change data to dict: " + str(dic))
     if data:
+      name = dic.get("name")
+      if name == "updateAgent":
+        break
       pid = os.fork()
       if pid == 0:
         do_data(data,addr,dic,data2)
         sys.exit()
-      name = dic.get("name")
-      if name == "updateAgent":
-        break
   udpsocket.close()
   try:
     cmd = "python /home/opvis/opvis_agent/agent_service/update/agentupdate.py" + " " + data2
