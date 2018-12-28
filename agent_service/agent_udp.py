@@ -576,39 +576,56 @@ def get_New_cycle():
 
 # 在线调试
 def online_debug(dic):
-  logging.info("shell cmd: " + dic)
   with open("/home/opvis/utils/agent.lock", "r") as fd:
     proxy_ip = fd.readline().split(":")[0]
-  url = "http://" + proxy_ip + ":9995" + "/online_debug/"
-  shell_cmd = dic["data"]
-  execute_time = dic["execute_time"]
-  if execute_time:
-    end_time = datetime.datetime.now() + datetime.timedelta(seconds=execute_time)
-  else:
-    end_time = datetime.datetime.now() + datetime.timedelta(seconds=60)
-  sub = subprocess.Popen(shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-  while True:
-    if sub.poll() is not None:
-      break
-    time.sleep(0.1)
-    if end_time <= datetime.datetime.now():
-      overtime_alarm = 2
-      sub.kill()
-    else:
-      overtime_alarm = 1
-    (stdoutput, erroutput) = sub.communicate()
-    if stdoutput:
-      result = stdoutput
-    else:
-      result = erroutput
-  data = {}
-  data["id"] = dic["id"]
-  data["result"] = result
-  data["have_result"] = overtime_alarm
-  data = urllib.urlencode(data)
-  req = urllib2.Request(url=url, data=data)
+  get_id_url = "http://" + proxy_ip + ":9995" + "/online_debug/"
+  get_data_url = "http://" + proxy_ip + ":9995" + "/debug_info/" # 调用接口获取shell脚本内容
+  id = dic["id"]
+  get_debug_data = {}
+  get_debug_data["id"] = id
+  data = urllib.urlencode(get_debug_data)
+  req = urllib2.Request(url=get_data_url, data=data)
   res = urllib2.urlopen(req)
-  #get_data = res.read()
+  get_data = res.read()
+  if get_data:
+    logging.info("get data from debug_info: " + str(get_data))
+    debug_data = json.loads(get_data)
+    shell_cmd = debug_data["data"]
+    execute_time = debug_data["execute_time"]
+    if execute_time:
+      end_time = datetime.datetime.now() + datetime.timedelta(seconds=execute_time)
+    else:
+      end_time = datetime.datetime.now() + datetime.timedelta(seconds=60)
+    sub = subprocess.Popen(shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    logging.info("sub的进程id：" + str(sub.pid))
+    result = ""
+    while True:
+      time.sleep(0.1)
+      if end_time <= datetime.datetime.now():
+        overtime_alarm = 2
+        sub.kill()
+        break   # 为了防止结果和错误都为空，如ls一个空目录
+      else:
+        overtime_alarm = 1
+      (stdoutput, erroutput) = sub.communicate()
+      if stdoutput:
+        result = stdoutput
+      else:
+        result = erroutput
+      if result:
+        break
+      if sub.poll() is not None:
+        break
+    data = {}
+    data["id"] = dic["id"]
+    data["result"] = result
+    data["have_result"] = overtime_alarm
+    data = urllib.urlencode(data)
+    req = urllib2.Request(url=get_id_url, data=data)
+    res = urllib2.urlopen(req)
+    get_data = res.read()
+    logging.info("transfer feedback" + str(get_data))
+
 
 def do_data(data,addr,dic,data2):
   if "pstatus" in dic:
@@ -634,8 +651,10 @@ def do_data(data,addr,dic,data2):
       logging.info("Check sudoers md5, thread error: " + str(e) + "-- check_sudoers_md5()")
   elif dic["status"] == 9:  # 在线调试
     try:
-      online_debugs = threading.Thread(target=online_debug, args=(dic,))
-      online_debugs.start()
+      pid = os.fork()
+      if pid == 0:
+        logging.info("处理在线调试9的进程id：" + str(os.getpid()))
+        online_debug(dic)
     except Exception as e:
       logging.info("Online debug, error: " + str(e) + "-- ")
   else:
@@ -674,9 +693,7 @@ def main():
   # Get data from proxy
   while True:
     data, addr = udpsocket.recvfrom(2018)
-    time_second = time.time()
-    logging.info("Time of data received: " + str(time_second))
-    logging.info("Receive data from proxy: " + str(data))
+    start_time = datetime.datetime.now()
     data1 = "{0}".format(data)
     lstr = "'''"
     rstr = "'''"
@@ -689,8 +706,20 @@ def main():
         break
       pid = os.fork()
       if pid == 0:
-        do_data(data,addr,dic,data2)
-        sys.exit()
+        pid2 = os.fork()
+        if pid2 == 0:
+          logging.info("Receive data from proxy: " + str(data))
+          logging.info("统一处理data的进程id：" + str(os.getpid()))
+          do_data(data, addr, dic, data2)
+          sys.exit(0)
+        else:
+          os._exit(0)
+      else:
+        os.wait()
+        end_time = datetime.datetime.now()
+        c_time = end_time - start_time
+        logging.info("时间： " + str(c_time))
+
   udpsocket.close()
   try:
     cmd = "python /home/opvis/opvis_agent/agent_service/update/agentupdate.py" + " " + data2
@@ -742,10 +771,17 @@ if __name__=='__main__':
   jifangip = currentip
   daemon_process()
   post_md5(jifangip)
-  pid=os.fork()
+  pid = os.fork()
   if pid==0:
-    if os.path.exists(pid_of_process):
-      os.remove(pid_of_process)
-    get_Old_cycle()
+    pid2 =os.fork()
+    if pid2 == 0:
+      logging.info("grandsun process: " + str(os.getpid()))
+      if os.path.exists(pid_of_process):
+        os.remove(pid_of_process)
+      get_Old_cycle()
+    else:
+      logging.info("子进程: " + str(os.getpid()))
+      os._exit(0)
   else:
+    os.wait()
     main()
