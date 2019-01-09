@@ -102,11 +102,11 @@ def check_sudoers_md5():
           except Exception as e:
             logging.info("Post sudoers md5 error: " + str(e) + "-- check_sudoers_md5")
           logging.info("Post sudoers md5 successfully: " + str(data) + "-- check_sudoers_md5()")
-        # c = ConfigParser.ConfigParser()
-        # c.read("conf.ini")
-        # check_sudoers_md5_cycle = c.get("cycle", "check_sudoers_md5_cycle")
-        # time.sleep(float(check_sudoers_md5_cycle))
-        time.sleep(float(3600))
+        c = ConfigParser.ConfigParser()
+        c.read("conf.ini")
+        check_sudoers_md5_cycle = c.get("cycle", "check_sudoers_md5_cycle")
+        time.sleep(float(check_sudoers_md5_cycle))
+        # time.sleep(float(3600))
 
       else:
         break
@@ -166,9 +166,9 @@ def re_format_ip(addr):
 # Upload installed plugins and get upgrade agent informations
 def sendFileName():
   while True:
-    # c = ConfigParser.ConfigParser()
-    # c.read("conf.ini")
-    # send_filename_cycle = c.get("cycle", "send_filename_cycle")
+    c = ConfigParser.ConfigParser()
+    c.read("conf.ini")
+    send_filename_cycle = c.get("cycle", "send_filename_cycle")
     try:
       requrl = "http://" + jifangip + "/umsproxy/autoProxyPlugIn/sendFileName"
       filenames = file_name(plugin_dir)
@@ -192,18 +192,18 @@ def sendFileName():
       except Exception as e:
         logging.info("Upload ip and plugin name to proxy error: " + str(e))
       logging.info("Upload ip and plugin name to proxy success: " + str(data))
-      time.sleep(float(240))
-      # time.sleep(float(send_filename_cycle))
+      # time.sleep(float(240))
+      time.sleep(float(send_filename_cycle))
     except Exception as e:
       logging.info("Upload the machine IP and installed plugins to the proxy error: " + str(e))
-      time.sleep(float(240))
-      # time.sleep(float(send_filename_cycle))
+      # time.sleep(float(240))
+      time.sleep(float(send_filename_cycle))
 
 def check_version():
   while True:
-    # c = ConfigParser.ConfigParser()
-    # c.read("conf.ini")
-    # check_version_cycle = c.get("cycle", "check_version_cycle")
+    c = ConfigParser.ConfigParser()
+    c.read("conf.ini")
+    check_version_cycle = c.get("cycle", "check_version_cycle")
     try:
       agentrequrl = "http://" + jifangip + "/umsproxy/autoProxyPlugIn/checkAgentVersion"
       data = ""
@@ -218,19 +218,19 @@ def check_version():
           send_to_server = result
           udpsocket.sendto(send_to_server, address)
           udpsocket.close()
-      time.sleep(float(240))
-      # time.sleep(float(check_version_cycle))
+      # time.sleep(float(240))
+      time.sleep(float(check_version_cycle))
     except Exception as e:
       logging.info("Upgrade agent error: " + str(e))
-      time.sleep(float(240))
-      # time.sleep(float(check_version_cycle))
+      # time.sleep(float(240))
+      time.sleep(float(check_version_cycle))
 
 # report heart
 def report_heart():
   while True:
-    # c = ConfigParser.ConfigParser()
-    # c.read("conf.ini")
-    # report_heart_cycle = c.get("cycle", "report_heart_cycle")
+    c = ConfigParser.ConfigParser()
+    c.read("conf.ini")
+    report_heart_cycle = c.get("cycle", "report_heart_cycle")
     try:
       if os.path.exists("/home/opvis/utils/agent.lock"):
         with open("/home/opvis/utils/agent.lock", "r") as fd:
@@ -260,12 +260,12 @@ def report_heart():
         logging.info("Report heart to proxy error: " + str(e))
       if data:
         logging.info("Report heart to proxy success: " + str(data))
-        time.sleep(float(240))
-        # time.sleep(float(report_heart_cycle))
+        # time.sleep(float(240))
+        time.sleep(float(report_heart_cycle))
     except Exception as e:
       logging.info("Report heart to proxy error: " + str(e))
-      time.sleep(float(240))
-      # time.sleep(float(report_heart_cycle))
+      # time.sleep(float(240))
+      time.sleep(float(report_heart_cycle))
 
 def call_plugin(status,tmp_url,dic,plugin_name,data2):
   dirs = os.listdir(plugin_dir)
@@ -291,7 +291,7 @@ def call_plugin(status,tmp_url,dic,plugin_name,data2):
       logging.info("Plugin is not installed: topologic.")
   else:
     cmd = "python /home/opvis/utils/plugin/update.py" + " " + data2
-    ret = os.system(cmd)
+    os.system(cmd)
 
 def getAllprocess():
   try:
@@ -377,21 +377,21 @@ def get_Old_cycle():
     os.remove(allitems)
   try:
     while True:
-      # c = ConfigParser.ConfigParser()
-      # c.read("conf.ini")
-      # get_old_cycle = c.get("cycle", "get_old_cycle")
+      c = ConfigParser.ConfigParser()
+      c.read("conf.ini")
+      get_old_cycle = c.get("cycle", "get_old_cycle")
       try:
         get_data = getAllprocess()
         if get_data:
           break
         else:
-          time.sleep(10)
-          # time.sleep(get_old_cycle)
+          # time.sleep(10)
+          time.sleep(get_old_cycle)
           continue
       except Exception as e:
         logging.info("Can't connect to proxy")
-        time.sleep(10)
-        # time.sleep(get_old_cycle)
+        # time.sleep(10)
+        time.sleep(get_old_cycle)
     if get_data:
       for i in json.loads(get_data):
         with open(allitems, "a") as fd:
@@ -427,17 +427,17 @@ def get_Old_cycle():
 
 def get_New_cycle():
   while True:
-    # c = ConfigParser.ConfigParser()
-    # c.read("conf.ini")
-    # get_new_cycle = c.get("cycle", "get_new_cycle")
+    c = ConfigParser.ConfigParser()
+    c.read("conf.ini")
+    get_new_cycle = c.get("cycle", "get_new_cycle")
     try:
       get_data = getAllprocess()
       if get_data:
         break
     except Exception as e:
       logging.info("Can't connect to proxy")
-      time.sleep(10)
-      # time.sleep(get_new_cycle)
+      # time.sleep(10)
+      time.sleep(get_new_cycle)
   try:
     if get_data:
       os.remove(allitems)
@@ -596,7 +596,7 @@ def online_debug(dic):
       end_time = datetime.datetime.now() + datetime.timedelta(seconds=execute_time)
     else:
       end_time = datetime.datetime.now() + datetime.timedelta(seconds=60)
-    sub = subprocess.Popen(shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    sub = subprocess.Popen("sudo", shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     logging.info("sub的进程id：" + str(sub.pid))
     result = ""
     while True:
@@ -608,10 +608,10 @@ def online_debug(dic):
       else:
         overtime_alarm = 1
       (stdoutput, erroutput) = sub.communicate()
-      if stdoutput:
-        result = stdoutput
-      else:
+      if erroutput:
         result = erroutput
+      else:
+        result = stdoutput
       if result:
         break
       if sub.poll() is not None:
@@ -626,6 +626,101 @@ def online_debug(dic):
     get_data = res.read()
     logging.info("transfer feedback" + str(get_data))
 
+# 定点监控添加
+def settled_mon_add(dic):
+  with open("/home/opvis/utils/agent.lock", "r") as fd:
+    proxy_ip = fd.readline().split(":")[0]
+  upload_result_url = "http://" + proxy_ip + ":9995" + "/fixed_point_result/"  # 返回结果给transfer
+  get_data_url = "http://" + proxy_ip + ":9995" + "/fixed_point_data/" # 调用接口获取shell脚本内容
+  id = dic["id"]
+  get_debug_data = {}
+  get_debug_data["id"] = id
+  data = urllib.urlencode(get_debug_data)
+  req = urllib2.Request(url=get_data_url, data=data)
+  res = urllib2.urlopen(req)
+  get_data = res.read()
+  if get_data:
+    logging.info("get data settled_mon_add: " + str(get_data))
+    debug_data = json.loads(get_data)
+    shell_cmd = debug_data["data"]
+    execute_cycle = debug_data["execute_cycle"]
+    collection_name = debug_data["collection_name"]
+    shell_path = settled_monitor + collection_name + "##" + id  # shell脚本名字为collection_name##id
+    shell_name = collection_name + "##" + id
+    # shell_path =  "/home/opvis/utils/plugin/shell_scripts/collection_name##id"
+    with open(shell_path,"w") as fd:
+      fd.write(shell_cmd)
+    cron_cmd = "*" + "/" + str(execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + shell_name
+    logging.info("定点监控定时任务：" + str(cron_cmd))
+    with open(crontab_settled_monitor,"a") as fd:
+      fd.write(cron_cmd)
+      fd.write("\n")
+    os.system("crontab {0}".format(crontab_settled_monitor))
+
+# 定点监控删除
+def settled_mon_delete(dic):
+  with open("/home/opvis/utils/agent.lock", "r") as fd:
+    proxy_ip = fd.readline().split(":")[0]
+  get_data_url = "http://" + proxy_ip + ":9995" + "/fixed_point_data/" # 调用接口获取shell脚本内容
+  id = dic["id"]
+  get_debug_data = {}
+  get_debug_data["id"] = id
+  data = urllib.urlencode(get_debug_data)
+  req = urllib2.Request(url=get_data_url, data=data)
+  res = urllib2.urlopen(req)
+  get_data = res.read()
+  if get_data:
+    logging.info("get data settled_mon_delete: " + str(get_data))
+    debug_data = json.loads(get_data)
+    shell_cmd = debug_data["data"]
+    execute_cycle = debug_data["execute_cycle"]
+    collection_name = debug_data["collection_name"]
+    # 要删除的脚本名字
+    shell_name = collection_name + "##" + id
+    cron_del_cmd = "sed -i '/{0}/d' {1}".format(shell_name, crontab_settled_monitor)
+    os.system(cron_del_cmd)
+    os.system("crontab {0}".format(crontab_settled_monitor))
+    # 定时任务删除了，还要把shell脚本删除？
+
+
+# 定点监控修改
+def settled_mon_edit(dic):
+  with open("/home/opvis/utils/agent.lock", "r") as fd:
+    proxy_ip = fd.readline().split(":")[0]
+  upload_result_url = "http://" + proxy_ip + ":9995" + "/fixed_point_result/"  # 返回结果给transfer
+  get_data_url = "http://" + proxy_ip + ":9995" + "/fixed_point_data/" # 调用接口获取shell脚本内容
+  id = dic["id"]
+  get_debug_data = {}
+  get_debug_data["id"] = id
+  data = urllib.urlencode(get_debug_data)
+  req = urllib2.Request(url=get_data_url, data=data)
+  res = urllib2.urlopen(req)
+  get_data = res.read()
+  if get_data:
+    logging.info("get data from debug_info: " + str(get_data))
+    debug_data = json.loads(get_data)
+    shell_cmd = debug_data["data"]
+    execute_cycle = debug_data["execute_cycle"]
+    collection_name = debug_data["collection_name"]
+    shell_path = settled_monitor + collection_name + "##" + id
+    shell_name = collection_name + "##" + id
+    # shell_path =  "/home/opvis/utils/plugin/shell_scripts/collection_name##id"
+    # 修改shell脚本内容的话，这里我就直接覆盖之前的
+    with open(shell_path,"w") as fd:
+      fd.write(shell_cmd)
+    # 如果时间cycle或者shell脚本名字有改变，那么要删除之前的定时任务
+    cmd1 = "grep {0} {1}".format(shell_name,crontab_settled_monitor) + "|awk '{print $1}'|awk -F '/' '{print $2}'"
+    (status, old_execute_cycle) = commands.getstatusoutput(cmd1)
+    cmd2 = "grep {0} {1}".format(id,crontab_settled_monitor) + "|awk -F ' ' '{print $NF}'"
+    (status, old_shell_name) = commands.getstatusoutput(cmd2)
+    if execute_cycle != old_execute_cycle or shell_name != old_shell_name:
+      cron_del_cmd = "sed -i '/{0}/d' {1}".format(shell_name, crontab_settled_monitor)
+      os.system(cron_del_cmd)
+      cron_cmd = "*" + "/" + str(execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + shell_name
+      with open(crontab_settled_monitor, "a") as fd:
+        fd.write(cron_cmd)
+        fd.write("\n")
+      os.system("crontab {0}".format(crontab_settled_monitor))
 
 def do_data(data,addr,dic,data2):
   if "pstatus" in dic:
@@ -656,7 +751,23 @@ def do_data(data,addr,dic,data2):
         logging.info("处理在线调试9的进程id：" + str(os.getpid()))
         online_debug(dic)
     except Exception as e:
-      logging.info("Online debug, error: " + str(e) + "-- ")
+      logging.info("Online debug, error: " + str(e) + "-- online_debug")
+  elif dic["status"] == 10:  # 定点监控新增
+    try:
+      settled_mon_add(dic)
+    except Exception as e:
+      logging.info("settled_mon_add, error: " + str(e) + "-- settled_mon_add()")
+  elif dic["status"] == 11:  # 定点监控删除
+    try:
+      settled_mon_delete(dic)
+    except Exception as e:
+      logging.info("settled_mon_delete, error: " + str(e) + "-- settled_mon_delete()")
+
+  elif dic["status"] == 12:  # 定点监控修改
+    try:
+      settled_mon_edit(dic)
+    except Exception as e:
+      logging.info("settled_mon_edit, error: " + str(e) + "-- settled_mon_edit()")
   else:
     if addr[0] != "127.0.0.1":
       status = dic["pluginfo"]["status"]
@@ -733,20 +844,21 @@ if __name__=='__main__':
   allcycle_b = "/home/opvis/utils/pm/allcycle_b"
   allcycle_c = "/home/opvis/utils/pm/allcycle_c"
   pid_of_process = "/home/opvis/utils/pm/pid_of_process"
-  crontab_opvis_a = "/home/opvis/utils/cron/crontab_opvis_a"
-  crontab_opvis_b = "/home/opvis/utils/cron/crontab_opvis_b"
-  crontab_opvis_c = "/home/opvis/utils/cron/crontab_opvis_c"
+  crontab_settled_monitor = "/home/opvis/utils/cron/crontab_temp"
   crontab_opvis_b_del = "/home/opvis/utils/cron/crontab_opvis_b_del"
   sudoers_original_md5 = "/home/opvis/utils/pm/sudoers_original_md5"
   pmonitorLog = "/home/opvis/utils/log/pmonitor.log"
   pmonitorDir = "/home/opvis/utils/plugin/pmonitor.py"
   plugin_dir = "/home/opvis/utils/plugin/"
+  settled_monitor = "/home/opvis/utils/plugin/shell_scripts/"
 
   if not os.path.exists("/home/opvis/utils"):
     os.makedirs("/home/opvis/utils")
     os.makedirs("/home/opvis/utils/log")
   if not os.path.exists("/home/opvis/utils/pm"):
     os.makedirs("/home/opvis/utils/pm")
+  if not os.path.exists("/home/opvis/utils/cron"):
+    os.makedirs("/home/opvis/utils/cron")
   try:
     address = ("0.0.0.0", 9997)
     udpsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
