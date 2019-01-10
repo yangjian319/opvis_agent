@@ -108,11 +108,14 @@ def check_process(ll):
         logging.info("process is ok!" + " process name is: " + str(key_word) + " " + " machine ip is: " + str(biz_ip))
         # resend
         if os.path.exists(resend_datas_m):
-          with open(resend_datas_m, "r") as fp:
-            result = fp.readlines()
-            result1 = json.dumps(result)
-          udpsocket.sendto(result1, address)
-          os.remove(resend_datas_m)
+          if os.path.getsize(resend_datas_m) > 10240: # getsize是字节为单位1024B=1KB
+            os.remove(resend_datas_m)
+          else:
+            with open(resend_datas_m, "r") as fp:
+              result = fp.readlines()
+              result1 = json.dumps(result)
+            udpsocket.sendto(result1, address)
+            os.remove(resend_datas_m)
         break
       else:
         if (b - a) > time_out:
