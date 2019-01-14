@@ -58,4 +58,3 @@ if os.path.exists("/home/opvis/opvis_agent.tar.gz"):
   logging.info("Update agent_udp successfully!")
 else:
   logging.info("Download opvis_agent.tar.gz failed!")
-
