@@ -34,7 +34,7 @@ id = shell_name.split("##")[1]
 with open(shell_path,"r") as fd:
   shell_cmd = fd.read()
 end_time = datetime.datetime.now() + datetime.timedelta(seconds=60)
-sub = subprocess.Popen("sudo", shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+sub = subprocess.Popen(shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 while True:
   time.sleep(0.1)
   if end_time <= datetime.datetime.now():
@@ -52,6 +52,7 @@ while True:
     break
   if sub.poll() is not None:
     break
+logging.info("shell脚本定时执行结果：" + str(result))
 data = {}
 data["id"] = id
 data["result"] = result
