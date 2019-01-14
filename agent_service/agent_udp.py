@@ -80,8 +80,11 @@ def check_sudoers_md5():
         with open(sudoers_original_md5, "r") as fd:
           original_md5 = fd.readline()
         (status, md5) = commands.getstatusoutput("sudo md5sum /etc/sudoers|awk '{print $1}'")
+        (status, permission) = commands.getstatusoutput("ls -l /etc/sudoers |awk '{print $1}'")
+        (status, owner) = commands.getstatusoutput("ls -l /etc/sudoers|awk '{print $3}'")
+        (status, group) = commands.getstatusoutput("ls -l /etc/sudoers|awk '{print $4}'")
         # 文件权限、属主、文件组、文件位置、文件内容
-        if md5 != original_md5:
+        if md5 != original_md5 or permission != "-rw-------" or owner != "root" or group != "root":
           ips = ""
           allips = get_all_ips()
           for item in allips:
@@ -103,11 +106,10 @@ def check_sudoers_md5():
             logging.info("Post sudoers md5 error: " + str(e) + "-- check_sudoers_md5")
           logging.info("Post sudoers md5 successfully: " + str(data) + "-- check_sudoers_md5()")
         c = ConfigParser.ConfigParser()
-        c.read("conf.ini")
+        c.read("/home/opvis/utils/plugin/conf.ini")
         check_sudoers_md5_cycle = c.get("cycle", "check_sudoers_md5_cycle")
         time.sleep(float(check_sudoers_md5_cycle))
         # time.sleep(float(3600))
-
       else:
         break
         logging.info("checksudoers.py is not installed.")
@@ -167,7 +169,7 @@ def re_format_ip(addr):
 def sendFileName():
   while True:
     c = ConfigParser.ConfigParser()
-    c.read("conf.ini")
+    c.read("/home/opvis/utils/plugin/conf.ini")
     send_filename_cycle = c.get("cycle", "send_filename_cycle")
     try:
       requrl = "http://" + jifangip + "/umsproxy/autoProxyPlugIn/sendFileName"
@@ -202,7 +204,7 @@ def sendFileName():
 def check_version():
   while True:
     c = ConfigParser.ConfigParser()
-    c.read("conf.ini")
+    c.read("/home/opvis/utils/plugin/conf.ini")
     check_version_cycle = c.get("cycle", "check_version_cycle")
     try:
       agentrequrl = "http://" + jifangip + "/umsproxy/autoProxyPlugIn/checkAgentVersion"
@@ -229,7 +231,7 @@ def check_version():
 def report_heart():
   while True:
     c = ConfigParser.ConfigParser()
-    c.read("conf.ini")
+    c.read("/home/opvis/utils/plugin/conf.ini")
     report_heart_cycle = c.get("cycle", "report_heart_cycle")
     try:
       if os.path.exists("/home/opvis/utils/agent.lock"):
@@ -369,7 +371,6 @@ def gen_Cron_first_hour():
   except Exception as e:
     logging.info("Error," + str(e) + "--gen_Cron_first_hour()")
 
-
 def get_Old_cycle():
   if os.path.exists(allcycle_a):
     os.remove(allcycle_a)
@@ -378,7 +379,7 @@ def get_Old_cycle():
   try:
     while True:
       c = ConfigParser.ConfigParser()
-      c.read("conf.ini")
+      c.read("/home/opvis/utils/plugin/conf.ini")
       get_old_cycle = c.get("cycle", "get_old_cycle")
       try:
         get_data = getAllprocess()
@@ -428,7 +429,7 @@ def get_Old_cycle():
 def get_New_cycle():
   while True:
     c = ConfigParser.ConfigParser()
-    c.read("conf.ini")
+    c.read("/home/opvis/utils/plugin/conf.ini")
     get_new_cycle = c.get("cycle", "get_new_cycle")
     try:
       get_data = getAllprocess()
@@ -639,12 +640,15 @@ def settled_mon_add(dic):
   req = urllib2.Request(url=get_data_url, data=data)
   res = urllib2.urlopen(req)
   get_data = res.read()
+  logging.info("定点监控新增获取到的数据：" + str(get_data))
   if get_data:
     logging.info("get data settled_mon_add: " + str(get_data))
     debug_data = json.loads(get_data)
     shell_cmd = debug_data["data"]
     execute_cycle = debug_data["execute_cycle"]
     collection_name = debug_data["collection_name"]
+    # /home/opvis/utils/plugin/shell_scripts/fuzai##112
+    # /home/opvis/utils/plugin/shell_scripts
     shell_path = settled_monitor + collection_name + "##" + id  # shell脚本名字为collection_name##id
     shell_name = collection_name + "##" + id
     # shell_path =  "/home/opvis/utils/plugin/shell_scripts/collection_name##id"
@@ -665,6 +669,7 @@ def settled_mon_delete(dic):
   id = dic["id"]
   get_debug_data = {}
   get_debug_data["id"] = id
+  get_debug_data["delete"] = "delete"
   data = urllib.urlencode(get_debug_data)
   req = urllib2.Request(url=get_data_url, data=data)
   res = urllib2.urlopen(req)
@@ -680,6 +685,9 @@ def settled_mon_delete(dic):
     cron_del_cmd = "sed -i '/{0}/d' {1}".format(shell_name, crontab_settled_monitor)
     os.system(cron_del_cmd)
     os.system("crontab {0}".format(crontab_settled_monitor))
+    old_shell_name_path = settled_monitor + shell_name
+    os.remove(old_shell_name_path)
+    logging.info("定点监控删除")
     # 定时任务删除了，还要把shell脚本删除？
 
 
@@ -706,23 +714,29 @@ def settled_mon_edit(dic):
     shell_name = collection_name + "##" + id
     # shell_path =  "/home/opvis/utils/plugin/shell_scripts/collection_name##id"
     # 修改shell脚本内容的话，这里我就直接覆盖之前的
-    with open(shell_path,"w") as fd:
-      fd.write(shell_cmd)
+
     # 如果时间cycle或者shell脚本名字有改变，那么要删除之前的定时任务
     cmd1 = "grep {0} {1}".format(shell_name,crontab_settled_monitor) + "|awk '{print $1}'|awk -F '/' '{print $2}'"
     (status, old_execute_cycle) = commands.getstatusoutput(cmd1)
     cmd2 = "grep {0} {1}".format(id,crontab_settled_monitor) + "|awk -F ' ' '{print $NF}'"
     (status, old_shell_name) = commands.getstatusoutput(cmd2)
+    old_shell_name_path = settled_monitor + old_shell_name
+    os.remove(old_shell_name_path)
+    with open(shell_path,"w") as fd:
+      fd.write(shell_cmd)
     if execute_cycle != old_execute_cycle or shell_name != old_shell_name:
-      cron_del_cmd = "sed -i '/{0}/d' {1}".format(shell_name, crontab_settled_monitor)
+      cron_del_cmd = "sed -i '/{0}/d' {1}".format(id, crontab_settled_monitor)
       os.system(cron_del_cmd)
       cron_cmd = "*" + "/" + str(execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + shell_name
       with open(crontab_settled_monitor, "a") as fd:
         fd.write(cron_cmd)
         fd.write("\n")
       os.system("crontab {0}".format(crontab_settled_monitor))
+      logging.info("定点监控修改")
 
 def do_data(data,addr,dic,data2):
+  get_status = dic["status"]
+  logging.info("收到的status是：" + str(get_status))
   if "pstatus" in dic:
     pid = os.fork()
     if pid == 0:
@@ -754,6 +768,7 @@ def do_data(data,addr,dic,data2):
       logging.info("Online debug, error: " + str(e) + "-- online_debug")
   elif dic["status"] == 10:  # 定点监控新增
     try:
+      logging.info("定点监控新增收到消息")
       settled_mon_add(dic)
     except Exception as e:
       logging.info("settled_mon_add, error: " + str(e) + "-- settled_mon_add()")
@@ -859,6 +874,8 @@ if __name__=='__main__':
     os.makedirs("/home/opvis/utils/pm")
   if not os.path.exists("/home/opvis/utils/cron"):
     os.makedirs("/home/opvis/utils/cron")
+  if not os.path.exists("/home/opvis/utils/plugin/shell_scripts"):
+    os.makedirs("/home/opvis/utils/plugin/shell_scripts")
   try:
     address = ("0.0.0.0", 9997)
     udpsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
