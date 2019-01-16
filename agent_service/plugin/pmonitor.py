@@ -15,7 +15,8 @@ import logging
 import datetime
 from logging.handlers import TimedRotatingFileHandler
 
-
+reload(sys)
+sys.setdefaultencoding('utf8')
 # log
 LOG_FILE = "/home/opvis/utils/log/pmonitor.log"
 logger = logging.getLogger()
