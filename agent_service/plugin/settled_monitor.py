@@ -15,6 +15,8 @@ import subprocess
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
+reload(sys)
+sys.setdefaultencoding('utf8')
 LOG_FILE = "/home/opvis/utils/log/agent.log"
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
