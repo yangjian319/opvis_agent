@@ -11,6 +11,8 @@ import urllib
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
+reload(sys)
+sys.setdefaultencoding('utf8')
 LOG_FILE = "/home/opvis/utils/log/agent.log"
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -25,10 +27,11 @@ data = sys.argv[1:]
 logging.info("Get data from proxy: " + str(data))
 dic = data[0]
 dic = json.loads(dic)
-#url = dic.get("agentUrl")
+# "agentUrl":"http://172.30.130.126:18382/proxyDownLoad/opvis_agent.tar.gz"
+url = dic.get("agentUrl")
 with open("/home/opvis/utils/agent.lock", "r") as fd:
   proxy_ip = fd.readline()
-url = "http://" + proxy_ip + "/proxyDownLoad/opvis_agent.tar.gz"
+#url = "http://" + proxy_ip + "/proxyDownLoad/opvis_agent.tar.gz"
 logging.info("Download agent url: " + str(url))
 
 try:
@@ -49,12 +52,12 @@ except OSError,error:
   logging.info("opvis_agent update second fork failed!")
   sys.exit(1)
 
-if os.path.exists("/home/opvis/opvis_agent.tar.gz"):
-  os.rename("/home/opvis/opvis_agent.tar.gz","/home/opvis/opvis_agent.tar.gz.bak")
-urllib.urlretrieve(url, "/home/opvis/opvis_agent.tar.gz")
-logging.info("Download opvis_agent.tar.gz successfully!")
-if os.path.exists("/home/opvis/opvis_agent.tar.gz"):
+agent_name = url.split("/")[4]  # opvis_agent_v1.tar.gz
+loacl_agent_name = "/home/opvis/" + agent_name
+urllib.urlretrieve(url, loacl_agent_name)
+logging.info("Download " + str(agent_name) + " successfully!")
+if os.path.exists(loacl_agent_name):
   os.system("sh /home/opvis/opvis_agent/agent_service/update/agentupdate.sh")
   logging.info("Update agent_udp successfully!")
 else:
-  logging.info("Download opvis_agent.tar.gz failed!")
+  logging.info("Download " + str(agent_name) + " failed!")
