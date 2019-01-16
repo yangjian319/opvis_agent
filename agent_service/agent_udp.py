@@ -24,6 +24,8 @@ import subprocess
 import ConfigParser
 from logging.handlers import TimedRotatingFileHandler
 
+reload(sys)
+sys.setdefaultencoding('utf8')
 VERSION = 4
 # log
 if not os.path.exists("/home/opvis/utils/log"):
@@ -69,7 +71,9 @@ def post_md5(jifangip):
     data = res.read()
   except Exception as e:
     logging.info("Upload MD5 to proxy error: " + str(e))
-  logging.info("Upload MD5 to proxy successfully: " + str(data))
+  if data:
+    logging.info("Upload MD5 to proxy successfully: " + str(data))
+
 
 def check_sudoers_md5():
     while True:
@@ -216,7 +220,7 @@ def check_version():
         logging.info("Get data from proxy when upgrade agent: " + str(result))
         result1 = json.loads(result)
         NEW_VERSION = result1["agentVersion"]
-        if NEW_VERSION > VERSION:
+        if NEW_VERSION != VERSION:
           send_to_server = result
           udpsocket.sendto(send_to_server, address)
           udpsocket.close()
