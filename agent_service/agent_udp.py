@@ -329,7 +329,7 @@ def gen_crontab(i,yanshi):
   while True:
     cmd = "python " + pmonitorDir + " " + i
     os.system(cmd)
-    time.sleep(yanshi)
+    time.sleep(float(yanshi))
 
 def gen_Cron_first_minute():
   try:
@@ -341,7 +341,7 @@ def gen_Cron_first_minute():
           yanshi = int(j.split("=")[1].strip(" ")[:-1])*60
           random_time = random.randint(1,59)
           random_time = random_time + round(random.random(),2)
-          time.sleep(random_time)
+          time.sleep(float(random_time))
           pid = os.fork()
           if pid == 0:
             sub_process_id = os.getpid()
@@ -363,7 +363,7 @@ def gen_Cron_first_hour():
           yanshi = int(j.split("=")[1].strip(" ")[:-1])*3600
           random_time = random.randint(1,59)
           random_time = random_time + round(random.random(), 2)
-          time.sleep(random_time)
+          time.sleep(float(random_time))
           pid = os.fork()
           if pid == 0:
             sub_process_id = os.getpid()
@@ -392,12 +392,12 @@ def get_Old_cycle():
           break
         else:
           # time.sleep(60)
-          time.sleep(get_old_cycle)
+          time.sleep(float(get_old_cycle))
           continue
       except Exception as e:
         logging.info("Can't connect to proxy")
         # time.sleep(10)
-        time.sleep(get_old_cycle)
+        time.sleep(float(get_old_cycle))
     if get_data:
       for i in json.loads(get_data):
         with open(allitems, "a") as fd:
@@ -443,7 +443,7 @@ def get_New_cycle():
     except Exception as e:
       logging.info("Can't connect to proxy")
       # time.sleep(10)
-      time.sleep(get_new_cycle)
+      time.sleep(float(get_new_cycle))
   try:
     if get_data:
       os.remove(allitems)
@@ -496,7 +496,7 @@ def get_New_cycle():
             yanshi = int(j.split("=")[1].strip(" ")[:-1]) * 60
             random_time = random.randint(1, 59)
             random_time = random_time + round(random.random(), 2)
-            time.sleep(random_time)
+            time.sleep(float(random_time))
             pid = os.fork()
             if pid == 0:
               sub_process_id = os.getpid()
@@ -510,7 +510,7 @@ def get_New_cycle():
             yanshi = int(j.split("=")[1].strip(" ")[:-1]) * 3600
             random_time = random.randint(1, 59)
             random_time = random_time + round(random.random(), 2)
-            time.sleep(random_time)
+            time.sleep(float(random_time))
             pid = os.fork()
             if pid == 0:
               sub_process_id = os.getpid()
@@ -554,7 +554,7 @@ def get_New_cycle():
               yanshi = int(j.split("=")[1].strip(" ")[:-1]) * 60
               random_time = random.randint(1, 59)
               random_time = random_time + round(random.random(), 2)
-              time.sleep(random_time)
+              time.sleep(float(random_time))
               pid = os.fork()
               if pid == 0:
                 sub_process_id = os.getpid()
@@ -568,7 +568,7 @@ def get_New_cycle():
               yanshi = int(j.split("=")[1].strip(" ")[:-1]) * 3600
               random_time = random.randint(1, 59)
               random_time = random_time + round(random.random(), 2)
-              time.sleep(random_time)
+              time.sleep(float(random_time))
               pid = os.fork()
               if pid == 0:
                 sub_process_id = os.getpid()
@@ -759,7 +759,7 @@ def do_data(data,addr,dic,data2):
       check_sudoers_md5s = threading.Thread(target=check_sudoers_md5, args=())
       random_time = random.randint(1, 59)
       random_time = random_time + round(random.random(), 2)
-      time.sleep(random_time)
+      time.sleep(flaot(random_time))
       check_sudoers_md5s.start()
     except Exception as e:
       logging.info("Check sudoers md5, thread error: " + str(e) + "-- check_sudoers_md5()")
