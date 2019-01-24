@@ -388,6 +388,7 @@ def get_Old_cycle():
       try:
         get_data = getAllprocess()
         if get_data:
+          logging.info("第一次getAllprocess获得的消息：" + str(get_data))
           break
         else:
           # time.sleep(60)
