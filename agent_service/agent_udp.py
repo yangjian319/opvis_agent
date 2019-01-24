@@ -396,7 +396,7 @@ def get_Old_cycle():
           continue
       except Exception as e:
         logging.info("Can't connect to proxy")
-        # time.sleep(10)
+        # time.sleep(60)
         time.sleep(float(get_old_cycle))
     if get_data:
       for i in json.loads(get_data):
@@ -442,10 +442,12 @@ def get_New_cycle():
         break
     except Exception as e:
       logging.info("Can't connect to proxy")
-      # time.sleep(10)
+      # time.sleep(60)
       time.sleep(float(get_new_cycle))
   try:
-    if get_data:
+    if get_data == 'no data':
+      logging.info("数据库里面没有该信息！--get_New_cycle()")
+    else:
       os.remove(allitems)
       for i in json.loads(get_data):
         with open(allitems, "a") as fd:
