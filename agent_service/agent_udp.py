@@ -390,7 +390,7 @@ def get_Old_cycle():
         if get_data:
           break
         else:
-          # time.sleep(10)
+          # time.sleep(60)
           time.sleep(get_old_cycle)
           continue
       except Exception as e:
