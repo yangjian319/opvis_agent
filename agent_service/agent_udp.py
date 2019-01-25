@@ -296,6 +296,8 @@ def call_plugin(status,tmp_url,dic,plugin_name,data2):
     else:
       logging.info("Plugin is not installed: topologic.")
   else:
+    # pack
+    # cmd = "/home/opvis/utils/plugin/update" + " " + data2
     cmd = "python /home/opvis/utils/plugin/update.py" + " " + data2
     os.system(cmd)
 
@@ -855,6 +857,8 @@ def main():
 
   udpsocket.close()
   try:
+    # pack
+    #cmd = "/home/opvis/opvis_agent/agent_service/update/agentupdate" + " " + data2
     cmd = "python /home/opvis/opvis_agent/agent_service/update/agentupdate.py" + " " + data2
     ret = os.system(cmd)
   except Exception as e:
