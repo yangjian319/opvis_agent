@@ -398,7 +398,7 @@ def get_Old_cycle():
         logging.info("Can't connect to proxy")
         # time.sleep(60)
         time.sleep(float(get_old_cycle))
-    if get_data:
+    if get_data  != "no data":
       for i in json.loads(get_data):
         with open(allitems, "a") as fd:
           fd.write(json.dumps(i))
