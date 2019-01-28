@@ -607,7 +607,7 @@ def online_debug(dic):
       end_time = datetime.datetime.now() + datetime.timedelta(seconds=execute_time)
     else:
       end_time = datetime.datetime.now() + datetime.timedelta(seconds=60)
-    sub = subprocess.Popen("sudo", shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    sub = subprocess.Popen(shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # logging.info("sub的进程id：" + str(sub.pid))
     result = ""
     while True:
