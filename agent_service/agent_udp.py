@@ -429,6 +429,8 @@ def get_Old_cycle():
       if trigger_cycle_value_hour:
         gen_Cron_first_hour()
     else:
+      with open(allitems, "w") as fd:
+        pass
       logging.info("No data return from database. --get_Old_cycle()")
   except Exception as e:
     logging.info("Error," + str(e) + "--get_Old_cycle()")
@@ -492,7 +494,7 @@ def get_New_cycle():
       fa.close()
       fb.close()
       fc.close()
-      if len(stra) < len(strb):
+      if len(stra) < len(strb):  # 新增监控
         with open(allcycle_c, "r") as fd:
           lines = fd.readlines()
         for i in lines:
@@ -524,7 +526,9 @@ def get_New_cycle():
                 fd.write(pidfile)
                 fd.write("\n")
               gen_crontab(j, yanshi)
-      elif len(stra) > len(strb):
+      elif len(stra) > len(strb):  # 删除监控
+        logging.info("stra: " + str(stra))
+        logging.info("strb: " + str(strb))
         del_strc = set(stra) - set(strb)
         for i in del_strc:
           dic_minute_hour = {}
@@ -534,12 +538,14 @@ def get_New_cycle():
               line = line.replace("\n", "").split(":")
               dic_minute_hour[line[0]] = line[1]
           del_pid = dic_minute_hour[del_minute_hour]
+          logging.info("要删除的进程：" + str(del_pid))
           cmd = "kill -9 " + del_pid
           os.system(cmd)
           cron_del_cmd = "sed -i '/{0}/d' {1}".format(del_pid, pid_of_process)
           os.system(cron_del_cmd)
       elif len(stra) == len(strb):
         del_process = set(stra) - set(strb)
+        logging.info("删除定时任务 " + str(del_process))
         if del_process:
           for x in del_process:
             del_cycle = x.split(":")[1].strip(" ")
@@ -547,9 +553,11 @@ def get_New_cycle():
             for line in fd.readlines():
               if line.startswith(del_cycle):
                 del_pid_number = line.split(":")[1].strip()
+                logging.info("要删除的pid " + str(del_pid_number))
                 cmd = "kill -9 " + str(del_pid_number)
                 os.system(cmd)
                 cron_del_cmd = "sed -i '/{0}/d' {1}".format(del_pid_number, pid_of_process)
+                logging.info("删除文件里面的记录 " + str(cron_del_cmd))
                 os.system(cron_del_cmd)
         add_process = set(strb) - set(stra)
         if add_process:
