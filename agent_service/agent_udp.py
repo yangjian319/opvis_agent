@@ -70,9 +70,9 @@ def post_md5(jifangip):
     res = urllib2.urlopen(req,timeout=70)
     data = res.read()
   except Exception as e:
-    logging.info("Upload MD5 to proxy error: " + str(e))
+    logging.info("Error," + str(e) + " -- post_md5()")
   if data:
-    logging.info("Upload MD5 to proxy successfully: " + str(data))
+    logging.info("Success,-- post_md5()")
 
 
 def check_sudoers_md5():
@@ -107,8 +107,8 @@ def check_sudoers_md5():
             res = urllib2.urlopen(req, timeout=70)
             data = res.read()
           except Exception as e:
-            logging.info("Post sudoers md5 error: " + str(e) + "-- check_sudoers_md5")
-          logging.info("Post sudoers md5 successfully: " + str(data) + "-- check_sudoers_md5()")
+            logging.info("Error," + str(e) + "-- check_sudoers_md5")
+          logging.info("Success,-- check_sudoers_md5()")
         c = ConfigParser.ConfigParser()
         c.read("/home/opvis/utils/plugin/conf.ini")
         check_sudoers_md5_cycle = c.get("cycle", "check_sudoers_md5_cycle")
@@ -116,7 +116,7 @@ def check_sudoers_md5():
         # time.sleep(float(3600))
       else:
         break
-        logging.info("checksudoers.py is not installed.")
+        logging.info("checksudoers is not installed.")
 
 # get pluginname
 def file_name(plugin_dir):
@@ -190,18 +190,17 @@ def sendFileName():
         name = {"names": filenames}
         name["ip"] = out
         name = urllib.urlencode(name)
-        logging.info("Upload ip and plugin name: " + str(name))
       try:
         req = urllib2.Request(url=requrl, data=name)
         res = urllib2.urlopen(req)
         data = res.read()
       except Exception as e:
-        logging.info("Upload ip and plugin name to proxy error: " + str(e))
-      logging.info("Upload ip and plugin name to proxy success: " + str(data))
+        logging.info("Error:," + str(e) + " -- sendFileName()")
+      logging.info("Success,-- sendFileName()")
       # time.sleep(float(240))
       time.sleep(float(send_filename_cycle))
     except Exception as e:
-      logging.info("Upload the machine IP and installed plugins to the proxy error: " + str(e))
+      logging.info("Error," + str(e) + " -- sendFileName()")
       # time.sleep(float(240))
       time.sleep(float(send_filename_cycle))
 
@@ -263,13 +262,13 @@ def report_heart():
         res = urllib2.urlopen(req)
         data = res.read()
       except Exception as e:
-        logging.info("Report heart to proxy error: " + str(e))
+        logging.info("Error," + str(e) + " -- report_heart()")
       if data:
-        logging.info("Report heart to proxy success: " + str(data))
+        logging.info("Success,-- report_heart()")
         # time.sleep(float(240))
         time.sleep(float(report_heart_cycle))
     except Exception as e:
-      logging.info("Report heart to proxy error: " + str(e))
+      logging.info("Error," + str(e) + " -- report_heart()")
       # time.sleep(float(240))
       time.sleep(float(report_heart_cycle))
 
@@ -290,9 +289,9 @@ def call_plugin(status,tmp_url,dic,plugin_name,data2):
         header_dict = {"Content-Type": "application/json;charset=UTF-8"}
         req = urllib2.Request(url=url_new, data=hostRelationship, headers=header_dict)
         res = urllib2.urlopen(req, timeout=70)
-        logging.info("Interface feedback upload hostinformation successfully: " + str(res.read()))
+        logging.info("Success," + str(res.read()) + " -- " + str(plugin_name))
       except Exception as e:
-        logging.info("Interface feedback upload hostinformation failed: " + str(e))
+        logging.info("Failed," + str(e) + " -- " + str(plugin_name))
     else:
       logging.info("Plugin is not installed: topologic.")
   else:
@@ -324,7 +323,7 @@ def getAllprocess():
     get_data = res.read()
     return get_data
   except Exception as e:
-    logging.info("Error," + str(e) + "--getAllprocess()")
+    logging.info("Error," + str(e) + " -- getAllprocess()")
     return ""
 
 def gen_crontab(i,yanshi):
@@ -353,7 +352,7 @@ def gen_Cron_first_minute():
               fd.write("\n")
             gen_crontab(j, yanshi)
   except Exception as e:
-    logging.info("Error," + str(e) + "--gen_Cron_first_minute()")
+    logging.info("Error," + str(e) + " -- gen_Cron_first_minute()")
 
 def gen_Cron_first_hour():
   try:
@@ -375,7 +374,7 @@ def gen_Cron_first_hour():
               fd.write("\n")
             gen_crontab(j, yanshi)
   except Exception as e:
-    logging.info("Error," + str(e) + "--gen_Cron_first_hour()")
+    logging.info("Error," + str(e) + " -- gen_Cron_first_hour()")
 
 def get_Old_cycle():
   if os.path.exists(allcycle_a):
@@ -607,7 +606,7 @@ def online_debug(dic):
     else:
       end_time = datetime.datetime.now() + datetime.timedelta(seconds=60)
     sub = subprocess.Popen("sudo", shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    logging.info("sub的进程id：" + str(sub.pid))
+    # logging.info("sub的进程id：" + str(sub.pid))
     result = ""
     while True:
       time.sleep(0.1)
