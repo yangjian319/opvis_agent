@@ -301,6 +301,7 @@ def call_plugin(status,tmp_url,dic,plugin_name,data2):
     os.system(cmd)
 
 def getAllprocess():
+  logging.info("进入到getAllprocess()...")
   try:
     with open("/home/opvis/utils/agent.lock", "r") as fd:
       proxy_ip = fd.readline().split(":")[0]
@@ -440,6 +441,7 @@ def get_New_cycle():
     try:
       get_data = getAllprocess()
       if get_data:
+        logging.info("新增监控开始..." + str(get_data))
         break
     except Exception as e:
       logging.info("Can't connect to proxy")
