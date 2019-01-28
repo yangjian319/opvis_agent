@@ -762,7 +762,7 @@ def do_data(data,addr,dic,data2):
       check_sudoers_md5s = threading.Thread(target=check_sudoers_md5, args=())
       random_time = random.randint(1, 59)
       random_time = random_time + round(random.random(), 2)
-      time.sleep(flaot(random_time))
+      time.sleep(float(random_time))
       check_sudoers_md5s.start()
     except Exception as e:
       logging.info("Check sudoers md5, thread error: " + str(e) + "-- check_sudoers_md5()")
