@@ -745,8 +745,6 @@ def settled_mon_edit(dic):
       logging.info("定点监控修改")
 
 def do_data(data,addr,dic,data2):
-  get_status = dic["status"]
-  logging.info("收到的status是：" + str(get_status))
   if "pstatus" in dic:
     pid = os.fork()
     if pid == 0:
