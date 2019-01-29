@@ -431,6 +431,8 @@ def get_Old_cycle():
     else:
       with open(allitems, "w") as fd:
         pass
+      with open(allcycle_a, "w") as fd:
+        pass
       logging.info("No data return from database. --get_Old_cycle()")
   except Exception as e:
     logging.info("Error," + str(e) + "--get_Old_cycle()")
@@ -451,7 +453,22 @@ def get_New_cycle():
       time.sleep(float(get_new_cycle))
   try:
     if get_data == 'no data':
-      logging.info("数据库里面没有该信息！--get_New_cycle()")
+      if os.path.exists(pid_of_process):
+        with open(pid_of_process) as fd:
+          lines = fd.readlines()
+        for line in lines:
+          pid = line.split(":")[1].replace("\n","")
+          cmd = "kill -9 " + pid
+          os.system(cmd)
+        os.remove(pid_of_process)
+        #os.remove(allitems)
+        #cron_del_cmd1 = "sed -i '1,$d' {0}".format(pid_of_process)
+        cron_del_cmd2 = "sed -i '1,$d' {0}".format(allitems)
+        #os.system(cron_del_cmd1)
+        os.system(cron_del_cmd2)
+        with open(allcycle_a, "w") as fd:
+          pass
+      logging.info("数据库里面没有信息！--get_New_cycle()")
     else:
       os.remove(allitems)
       for i in json.loads(get_data):
@@ -494,6 +511,9 @@ def get_New_cycle():
       fa.close()
       fb.close()
       fc.close()
+      logging.info("stra: " + str(stra))
+      logging.info("strb: " + str(strb))
+      logging.info("strc: " + str(strc))
       if len(stra) < len(strb):  # 新增监控
         with open(allcycle_c, "r") as fd:
           lines = fd.readlines()
@@ -526,6 +546,7 @@ def get_New_cycle():
                 fd.write(pidfile)
                 fd.write("\n")
               gen_crontab(j, yanshi)
+      # allcycle_a为空的时候，新增完监控，需要把allcycle_b里面的内容放到allcycle_b里面
       elif len(stra) > len(strb):  # 删除监控
         logging.info("stra: " + str(stra))
         logging.info("strb: " + str(strb))
@@ -543,7 +564,7 @@ def get_New_cycle():
           os.system(cmd)
           cron_del_cmd = "sed -i '/{0}/d' {1}".format(del_pid, pid_of_process)
           os.system(cron_del_cmd)
-      elif len(stra) == len(strb):
+      elif len(stra) == len(strb):  # 如果两个长度相等，再去判断是增加了呢还是删除了
         del_process = set(stra) - set(strb)
         logging.info("删除定时任务 " + str(del_process))
         if del_process:
@@ -561,6 +582,7 @@ def get_New_cycle():
                 os.system(cron_del_cmd)
         add_process = set(strb) - set(stra)
         if add_process:
+          logging.info("add_process：" + str(add_process))
           for x in add_process:  # "trigger_cycle_value: 2h"
             if x.split(":")[1].strip(" ")[-1:] == "m":
               j = "cycle=" + x.split(":")[1].strip(" ")
@@ -643,7 +665,7 @@ def online_debug(dic):
     req = urllib2.Request(url=get_id_url, data=data)
     res = urllib2.urlopen(req)
     get_data = res.read()
-    logging.info("transfer feedback" + str(get_data))
+    logging.info("transfer feedback " + str(get_data))
 
 # 定点监控添加
 def settled_mon_add(dic):
