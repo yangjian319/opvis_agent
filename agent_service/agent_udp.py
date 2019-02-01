@@ -475,6 +475,9 @@ def get_New_cycle():
         with open(allitems, "a") as fd:
           fd.write(json.dumps(i))
           fd.write("\n")
+      if not os.path.exists(allcycle_a):
+        with open(allcycle_a, "w") as fd:
+          pass
       cycle_unit = json.loads(get_data)
       trigger_cycle_value_minute = []
       trigger_cycle_value_hour = []
@@ -515,6 +518,7 @@ def get_New_cycle():
       logging.info("strb: " + str(strb))
       logging.info("strc: " + str(strc))
       if len(stra) < len(strb):  # 新增监控
+        logging.info("新增监控")
         with open(allcycle_c, "r") as fd:
           lines = fd.readlines()
         for i in lines:
@@ -548,6 +552,7 @@ def get_New_cycle():
               gen_crontab(j, yanshi)
       # allcycle_a为空的时候，新增完监控，需要把allcycle_b里面的内容放到allcycle_b里面
       elif len(stra) > len(strb):  # 删除监控
+        logging.info("删除监控")
         logging.info("stra: " + str(stra))
         logging.info("strb: " + str(strb))
         del_strc = set(stra) - set(strb)
@@ -565,6 +570,7 @@ def get_New_cycle():
           cron_del_cmd = "sed -i '/{0}/d' {1}".format(del_pid, pid_of_process)
           os.system(cron_del_cmd)
       elif len(stra) == len(strb):  # 如果两个长度相等，再去判断是增加了呢还是删除了
+        logging.info("修改监控")
         del_process = set(stra) - set(strb)
         logging.info("删除定时任务 " + str(del_process))
         if del_process:
@@ -689,12 +695,12 @@ def settled_mon_add(dic):
     collection_name = debug_data["collection_name"]
     # /home/opvis/utils/plugin/shell_scripts/fuzai##112
     # /home/opvis/utils/plugin/shell_scripts
-    shell_path = settled_monitor + collection_name + "##" + id  # shell脚本名字为collection_name##id
-    shell_name = collection_name + "##" + id
+    shell_path = settled_monitor + str(collection_name) + "##" + id  # shell脚本名字为collection_name##id
+    shell_name = str(collection_name) + "##" + id
     # shell_path =  "/home/opvis/utils/plugin/shell_scripts/collection_name##id"
     with open(shell_path,"w") as fd:
       fd.write(shell_cmd)
-    cron_cmd = "*" + "/" + str(execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + shell_name
+    cron_cmd = "*" + "/" + str(execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'"
     logging.info("定点监控定时任务：" + str(cron_cmd))
     with open(crontab_settled_monitor,"a") as fd:
       fd.write(cron_cmd)
@@ -767,7 +773,7 @@ def settled_mon_edit(dic):
     if execute_cycle != old_execute_cycle or shell_name != old_shell_name:
       cron_del_cmd = "sed -i '/{0}/d' {1}".format(id, crontab_settled_monitor)
       os.system(cron_del_cmd)
-      cron_cmd = "*" + "/" + str(execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + shell_name
+      cron_cmd = "*" + "/" + str(execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'"
       with open(crontab_settled_monitor, "a") as fd:
         fd.write(cron_cmd)
         fd.write("\n")
