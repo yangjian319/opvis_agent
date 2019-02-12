@@ -634,7 +634,11 @@ def online_debug(dic):
   req = urllib2.Request(url=get_data_url, data=data)
   res = urllib2.urlopen(req)
   get_data = res.read()
-  if get_data:
+  if not get_data:
+    logging.info("数据库里面没有这条数据")
+  elif get_data == "1":
+    logging.info("python server error.")
+  else:
     logging.info("get data from debug_info: " + str(get_data))
     debug_data = json.loads(get_data)
     shell_cmd = debug_data["data"]
@@ -687,7 +691,11 @@ def settled_mon_add(dic):
   res = urllib2.urlopen(req)
   get_data = res.read()
   logging.info("定点监控新增获取到的数据：" + str(get_data))
-  if get_data:
+  if not get_data:
+    logging.info("数据库里面没有这条数据")
+  elif get_data == "1":
+    logging.info("python server error.")
+  else:
     logging.info("get data settled_mon_add: " + str(get_data))
     debug_data = json.loads(get_data)
     shell_cmd = debug_data["data"]
@@ -713,28 +721,16 @@ def settled_mon_delete(dic):
     proxy_ip = fd.readline().split(":")[0]
   get_data_url = "http://" + proxy_ip + ":9995" + "/fixed_point_data/" # 调用接口获取shell脚本内容
   id = dic["id"]
-  get_debug_data = {}
-  get_debug_data["id"] = id
-  get_debug_data["delete"] = "delete"
-  data = urllib.urlencode(get_debug_data)
-  req = urllib2.Request(url=get_data_url, data=data)
-  res = urllib2.urlopen(req)
-  get_data = res.read()
-  if get_data:
-    logging.info("get data settled_mon_delete: " + str(get_data))
-    debug_data = json.loads(get_data)
-    shell_cmd = debug_data["data"]
-    execute_cycle = debug_data["execute_cycle"]
-    collection_name = debug_data["collection_name"]
-    # 要删除的脚本名字
-    shell_name = collection_name + "##" + id
-    cron_del_cmd = "sed -i '/{0}/d' {1}".format(shell_name, crontab_settled_monitor)
-    os.system(cron_del_cmd)
-    os.system("crontab {0}".format(crontab_settled_monitor))
-    old_shell_name_path = settled_monitor + shell_name
-    os.remove(old_shell_name_path)
-    logging.info("定点监控删除")
-    # 定时任务删除了，还要把shell脚本删除？
+  shell_name = id
+  cron_del_cmd = "sed -i '/{0}/d' {1}".format(shell_name, crontab_settled_monitor)
+  os.system(cron_del_cmd)
+  os.system("crontab {0}".format(crontab_settled_monitor))
+  old_shell_name = os.listdir(settled_monitor)
+  for i in old_shell_name:
+    if shell_name in i:
+      os.chdir(settled_monitor)
+      os.remove(i)
+  logging.info("定点监控删除")
 
 
 # 定点监控修改
@@ -750,22 +746,28 @@ def settled_mon_edit(dic):
   req = urllib2.Request(url=get_data_url, data=data)
   res = urllib2.urlopen(req)
   get_data = res.read()
-  if get_data:
+  if not get_data:
+    logging.info("数据库里面没有这条数据")
+  elif get_data == "1":
+    logging.info("python server error.")
+  else:
     logging.info("get data from debug_info: " + str(get_data))
     debug_data = json.loads(get_data)
     shell_cmd = debug_data["data"]
     execute_cycle = debug_data["execute_cycle"]
     collection_name = debug_data["collection_name"]
     shell_path = settled_monitor + collection_name + "##" + id
-    shell_name = collection_name + "##" + id
+    shell_name = str(collection_name) + "##" + id
     # shell_path =  "/home/opvis/utils/plugin/shell_scripts/collection_name##id"
     # 修改shell脚本内容的话，这里我就直接覆盖之前的
 
     # 如果时间cycle或者shell脚本名字有改变，那么要删除之前的定时任务
-    cmd1 = "grep {0} {1}".format(shell_name,crontab_settled_monitor) + "|awk '{print $1}'|awk -F '/' '{print $2}'"
+    cmd1 = "grep {0} {1}".format(id,crontab_settled_monitor) + "|awk '{print $1}'|awk -F '/' '{print $2}'"
     (status, old_execute_cycle) = commands.getstatusoutput(cmd1)
-    cmd2 = "grep {0} {1}".format(id,crontab_settled_monitor) + "|awk -F ' ' '{print $NF}'"
+    cmd2 = "grep '{0}' {1}".format(id,crontab_settled_monitor) + "|awk -F ' ' '{print $NF}'"
     (status, old_shell_name) = commands.getstatusoutput(cmd2)
+    logging.info("old_shell_name: " + str(old_shell_name))
+    old_shell_name = old_shell_name.replace("'", "")
     old_shell_name_path = settled_monitor + old_shell_name
     os.remove(old_shell_name_path)
     with open(shell_path,"w") as fd:
