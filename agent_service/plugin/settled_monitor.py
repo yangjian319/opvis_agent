@@ -54,7 +54,7 @@ while True:
     break
   if sub.poll() is not None:
     break
-logging.info("shell脚本定时执行结果：" + str(result))
+#logging.info("shell脚本定时执行结果：" + str(result))
 data = {}
 data["id"] = id
 data["result"] = result
