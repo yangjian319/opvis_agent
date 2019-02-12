@@ -62,6 +62,6 @@ data = urllib.urlencode(data)
 req = urllib2.Request(url=settled_post_url, data=data)
 res = urllib2.urlopen(req)
 get_data = res.read()
-logging.info("transfer feedback" + str(get_data))
+logging.info("transfer feedback " + str(get_data))
 
 
