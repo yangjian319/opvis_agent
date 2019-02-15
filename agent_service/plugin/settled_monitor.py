@@ -36,6 +36,8 @@ id = shell_name.split("##")[1]
 with open(shell_path,"r") as fd:
   shell_cmd = fd.read()
 end_time = datetime.datetime.now() + datetime.timedelta(seconds=60)
+# 脚本执行开始时间
+start_execute_time = time.time()
 sub = subprocess.Popen(shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 while True:
   time.sleep(0.1)
@@ -55,8 +57,10 @@ while True:
   if sub.poll() is not None:
     break
 #logging.info("shell脚本定时执行结果：" + str(result))
+end_execute_time = time.time()
 data = {}
 data["id"] = id
+data["cost_time"] = round(end_execute_time - start_execute_time,3)
 data["result"] = result
 data = urllib.urlencode(data)
 req = urllib2.Request(url=settled_post_url, data=data)
