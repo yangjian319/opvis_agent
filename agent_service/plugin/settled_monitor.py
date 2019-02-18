@@ -62,7 +62,7 @@ if os.path.exists(shell_path):
   end_execute_time = time.time()
   data = {}
   data["id"] = id
-  data["cost_time"] = round(end_execute_time - start_execute_time, 3)
+  data["cost_time"] = round(end_execute_time - start_execute_time, 2)
   data["result"] = result
   data = urllib.urlencode(data)
   req = urllib2.Request(url=settled_post_url, data=data)
