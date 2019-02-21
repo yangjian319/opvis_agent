@@ -28,16 +28,18 @@ fh.setFormatter(formatter)
 logger.addHandler(fh)
 
 shell_name = sys.argv[1]
+limit_time = sys.argv[2]
 shell_path = "/home/opvis/utils/plugin/shell_scripts/" + shell_name
 with open("/home/opvis/utils/agent.lock", "r") as fd:
   proxy_ip = fd.readline().split(":")[0]
 settled_post_url = "http://" + proxy_ip + ":9995" + "/fixed_point_result/"  # 返回结果给transfer
-id = shell_name.split("##")[1]
+#id = shell_name.split("##")[1]
+id = shell_name
 # 添加一个判断，判断shell_path是否存在，如果不存在就记录日志。
 if os.path.exists(shell_path):
   with open(shell_path, "r") as fd:
     shell_cmd = fd.read()
-  end_time = datetime.datetime.now() + datetime.timedelta(seconds=60)
+  end_time = datetime.datetime.now() + datetime.timedelta(seconds=limit_time)
   # 脚本执行开始时间
   start_execute_time = time.time()
   sub = subprocess.Popen(shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -62,7 +64,7 @@ if os.path.exists(shell_path):
   end_execute_time = time.time()
   data = {}
   data["id"] = id
-  data["cost_time"] = round(end_execute_time - start_execute_time, 2)
+  data["monitor_time"] = str(start_execute_time)
   data["result"] = result
   data = urllib.urlencode(data)
   req = urllib2.Request(url=settled_post_url, data=data)
