@@ -634,6 +634,7 @@ def online_debug(dic):
   req = urllib2.Request(url=get_data_url, data=data)
   res = urllib2.urlopen(req)
   get_data = res.read()
+  start_time = time.time()
   if not get_data:
     logging.info("数据库里面没有这条数据")
   elif get_data == "1":
@@ -646,7 +647,8 @@ def online_debug(dic):
     if execute_time:
       end_time = datetime.datetime.now() + datetime.timedelta(seconds=execute_time)
     else:
-      end_time = datetime.datetime.now() + datetime.timedelta(seconds=60)
+      # 如果页面没有传超时时间，就默认10s
+      end_time = datetime.datetime.now() + datetime.timedelta(seconds=10)
     sub = subprocess.Popen(shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # logging.info("sub的进程id：" + str(sub.pid))
     result = ""
@@ -668,6 +670,9 @@ def online_debug(dic):
       if sub.poll() is not None:
         break
     data = {}
+    ends_time = time.time()
+    data["start_time"] = str(start_time)
+    data["end_time"] = str(ends_time)
     data["id"] = dic["id"]
     data["result"] = result
     data["have_result"] = overtime_alarm
@@ -700,15 +705,22 @@ def settled_mon_add(dic):
     debug_data = json.loads(get_data)
     shell_cmd = debug_data["data"]
     execute_cycle = debug_data["execute_cycle"]
-    collection_name = debug_data["collection_name"]
-    # /home/opvis/utils/plugin/shell_scripts/fuzai##112
-    # /home/opvis/utils/plugin/shell_scripts
-    shell_path = settled_monitor + str(collection_name) + "##" + id  # shell脚本名字为collection_name##id
-    shell_name = str(collection_name) + "##" + id
-    # shell_path =  "/home/opvis/utils/plugin/shell_scripts/collection_name##id"
+    limit_time = debug_data["limit_time"] # 定点监控超时时间
+    if limit_time == "":
+      limit_time = "10"
+    unit = debug_data["unit"]
+    shell_path = settled_monitor + id
+    shell_name = id
     with open(shell_path,"w") as fd:
       fd.write(shell_cmd)
-    cron_cmd = "*" + "/" + str(execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'"
+    # 接下来要判断unit是分钟还是小时还是天，并进行转换
+    if unit == 0:
+      cron_cmd = "*" + "/" + str(execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+    elif unit == 1:
+      cron_cmd = "* *" + "/" + str(execute_cycle) + " * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+    elif unit == 2:
+      cron_cmd = "* * *" + "/" + str(execute_cycle) + " * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+    # shell_path =  "/home/opvis/utils/plugin/shell_scripts/id"
     logging.info("定点监控定时任务：" + str(cron_cmd))
     with open(crontab_settled_monitor,"a") as fd:
       fd.write(cron_cmd)
@@ -755,32 +767,42 @@ def settled_mon_edit(dic):
     debug_data = json.loads(get_data)
     shell_cmd = debug_data["data"]
     execute_cycle = debug_data["execute_cycle"]
-    collection_name = debug_data["collection_name"]
-    shell_path = settled_monitor + collection_name + "##" + id
-    shell_name = str(collection_name) + "##" + id
+    unit = debug_data["unit"]
+    limit_time = debug_data["limit_time"]  # 定点监控超时时间
+    if limit_time == "":
+      limit_time = "10"
+    #collection_name = debug_data["collection_name"]
+    shell_path = settled_monitor + id
+    shell_name = id
     # shell_path =  "/home/opvis/utils/plugin/shell_scripts/collection_name##id"
     # 修改shell脚本内容的话，这里我就直接覆盖之前的
 
     # 如果时间cycle或者shell脚本名字有改变，那么要删除之前的定时任务
-    cmd1 = "grep {0} {1}".format(id,crontab_settled_monitor) + "|awk '{print $1}'|awk -F '/' '{print $2}'"
-    (status, old_execute_cycle) = commands.getstatusoutput(cmd1)
-    cmd2 = "grep '{0}' {1}".format(id,crontab_settled_monitor) + "|awk -F ' ' '{print $NF}'"
-    (status, old_shell_name) = commands.getstatusoutput(cmd2)
-    logging.info("old_shell_name: " + str(old_shell_name))
-    old_shell_name = old_shell_name.replace("'", "")
-    old_shell_name_path = settled_monitor + old_shell_name
-    os.remove(old_shell_name_path)
+    # cmd1 = "grep {0} {1}".format(id,crontab_settled_monitor) + "|awk '{print $1}'|awk -F '/' '{print $2}'"
+    # (status, old_execute_cycle) = commands.getstatusoutput(cmd1)
+    # cmd2 = "grep '{0}' {1}".format(id,crontab_settled_monitor) + "|awk -F ' ' '{print $NF}'"
+    # (status, old_shell_name) = commands.getstatusoutput(cmd2)
+    # logging.info("old_shell_name: " + str(old_shell_name))
+    # old_shell_name = old_shell_name.replace("'", "")
+    # old_shell_name_path = settled_monitor + old_shell_name
+    # os.remove(old_shell_name_path)
+    os.remove(shell_path)
     with open(shell_path,"w") as fd:
       fd.write(shell_cmd)
-    if execute_cycle != old_execute_cycle or shell_name != old_shell_name:
-      cron_del_cmd = "sed -i '/{0}/d' {1}".format(id, crontab_settled_monitor)
-      os.system(cron_del_cmd)
-      cron_cmd = "*" + "/" + str(execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'"
-      with open(crontab_settled_monitor, "a") as fd:
-        fd.write(cron_cmd)
-        fd.write("\n")
-      os.system("crontab {0}".format(crontab_settled_monitor))
-      logging.info("定点监控修改")
+    # if execute_cycle != old_execute_cycle or shell_name != old_shell_name:
+    cron_del_cmd = "sed -i '/{0}/d' {1}".format(id, crontab_settled_monitor)
+    os.system(cron_del_cmd)
+    if unit == 0:
+      cron_cmd = "*" + "/" + str(execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+    elif unit == 1:
+      cron_cmd = "* *" + "/" + str(execute_cycle) + " * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+    elif unit == 2:
+      cron_cmd = "* * *" + "/" + str(execute_cycle) + " * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+    logging.info("定点监控修改定时任务：" + str(cron_cmd))
+    with open(crontab_settled_monitor, "a") as fd:
+      fd.write(cron_cmd)
+      fd.write("\n")
+    os.system("crontab {0}".format(crontab_settled_monitor))
 
 def do_data(data,addr,dic,data2):
   if "pstatus" in dic:
