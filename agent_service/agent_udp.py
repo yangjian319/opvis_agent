@@ -706,6 +706,7 @@ def settled_mon_add(dic):
     shell_cmd = debug_data["data"]
     execute_cycle = debug_data["execute_cycle"]
     limit_time = debug_data["limit_time"] # 定点监控超时时间
+    limit_time = str(limit_time)
     if limit_time == "":
       limit_time = "10"
     unit = debug_data["unit"]
@@ -769,6 +770,7 @@ def settled_mon_edit(dic):
     execute_cycle = debug_data["execute_cycle"]
     unit = debug_data["unit"]
     limit_time = debug_data["limit_time"]  # 定点监控超时时间
+    limit_time = str(limit_time)
     if limit_time == "":
       limit_time = "10"
     #collection_name = debug_data["collection_name"]
