@@ -684,127 +684,174 @@ def online_debug(dic):
 
 # 定点监控添加
 def settled_mon_add(dic):
-  with open("/home/opvis/utils/agent.lock", "r") as fd:
-    proxy_ip = fd.readline().split(":")[0]
-  upload_result_url = "http://" + proxy_ip + ":9995" + "/fixed_point_result/"  # 返回结果给transfer
-  get_data_url = "http://" + proxy_ip + ":9995" + "/fixed_point_data/" # 调用接口获取shell脚本内容
-  id = dic["id"]
-  get_debug_data = {}
-  get_debug_data["id"] = id
-  data = urllib.urlencode(get_debug_data)
-  req = urllib2.Request(url=get_data_url, data=data)
-  res = urllib2.urlopen(req)
-  get_data = res.read()
-  logging.info("定点监控新增获取到的数据：" + str(get_data))
-  if not get_data:
-    logging.info("数据库里面没有这条数据")
-  elif get_data == "1":
-    logging.info("python server error.")
-  else:
-    logging.info("get data settled_mon_add: " + str(get_data))
-    debug_data = json.loads(get_data)
-    shell_cmd = debug_data["data"]
-    execute_cycle = debug_data["execute_cycle"]
-    limit_time = debug_data["limit_time"] # 定点监控超时时间
-    limit_time = str(limit_time)
-    if limit_time == "":
-      limit_time = "10"
-    unit = debug_data["unit"]
-    shell_path = settled_monitor + id
-    shell_name = id
-    with open(shell_path,"w") as fd:
-      fd.write(shell_cmd)
-    # 接下来要判断unit是分钟还是小时还是天，并进行转换
-    if unit == 0:
-      cron_cmd = "*" + "/" + str(execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
-    elif unit == 1:
-      cron_cmd = "* *" + "/" + str(execute_cycle) + " * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
-    elif unit == 2:
-      cron_cmd = "* * *" + "/" + str(execute_cycle) + " * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
-    # shell_path =  "/home/opvis/utils/plugin/shell_scripts/id"
-    logging.info("定点监控定时任务：" + str(cron_cmd))
-    with open(crontab_settled_monitor,"a") as fd:
-      fd.write(cron_cmd)
-      fd.write("\n")
-    os.system("crontab {0}".format(crontab_settled_monitor))
+  try:
+    with open("/home/opvis/utils/agent.lock", "r") as fd:
+      proxy_ip = fd.readline().split(":")[0]
+    upload_result_url = "http://" + proxy_ip + ":9995" + "/fixed_point_result/"  # 返回结果给transfer
+    get_data_url = "http://" + proxy_ip + ":9995" + "/fixed_point_data/"  # 调用接口获取shell脚本内容
+    report_to_pyserver = "http://" + proxy_ip + ":9995" + "/agent_del_msg/"  # 新增完成后反馈给python server是否执行成功
+    id = dic["id"]
+    get_debug_data = {}
+    get_debug_data["id"] = id
+    data = urllib.urlencode(get_debug_data)
+    req = urllib2.Request(url=get_data_url, data=data)
+    res = urllib2.urlopen(req)
+    get_data = res.read()
+    logging.info("定点监控新增获取到的数据：" + str(get_data))
+    if not get_data:
+      logging.info("数据库里面没有这条数据")
+    elif get_data == "1":
+      logging.info("python server error.")
+    else:
+      logging.info("get data settled_mon_add: " + str(get_data))
+      debug_data = json.loads(get_data)
+      shell_cmd = debug_data["data"]
+      execute_cycle = debug_data["execute_cycle"]
+      limit_time = debug_data["limit_time"]  # 定点监控超时时间
+      limit_time = str(limit_time)
+      if limit_time == "":
+        limit_time = "10"
+      unit = debug_data["unit"]
+      shell_path = settled_monitor + id
+      shell_name = id
+      with open(shell_path, "w") as fd:
+        fd.write(shell_cmd)
+      # 接下来要判断unit是分钟还是小时还是天，并进行转换
+      if unit == 0:
+        cron_cmd = "*" + "/" + str(
+          execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+      elif unit == 1:
+        cron_cmd = "* *" + "/" + str(
+          execute_cycle) + " * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+      elif unit == 2:
+        cron_cmd = "* * *" + "/" + str(
+          execute_cycle) + " * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+      # shell_path =  "/home/opvis/utils/plugin/shell_scripts/id"
+      logging.info("定点监控定时任务：" + str(cron_cmd))
+      with open(crontab_settled_monitor, "a") as fd:
+        fd.write(cron_cmd)
+        fd.write("\n")
+      os.system("crontab {0}".format(crontab_settled_monitor))
+      report_data = {}
+      report_data["id"] = id
+      report_data["msg"] = "ok"
+      report_data["status"] = 1
+      data = urllib.urlencode(report_data)
+      req = urllib2.Request(url=report_to_pyserver, data=data)
+      res = urllib2.urlopen(req)
+  except Exception as e:
+    report_data = {}
+    report_data["id"] = id
+    report_data["msg"] = "no"
+    report_data["status"] = 1
+    data = urllib.urlencode(report_data)
+    req = urllib2.Request(url=report_to_pyserver, data=data)
+    res = urllib2.urlopen(req)
+
 
 # 定点监控删除
 def settled_mon_delete(dic):
   with open("/home/opvis/utils/agent.lock", "r") as fd:
     proxy_ip = fd.readline().split(":")[0]
-  get_data_url = "http://" + proxy_ip + ":9995" + "/fixed_point_data/" # 调用接口获取shell脚本内容
-  id = dic["id"]
-  shell_name = id
-  cron_del_cmd = "sed -i '/{0}/d' {1}".format(shell_name, crontab_settled_monitor)
-  os.system(cron_del_cmd)
-  os.system("crontab {0}".format(crontab_settled_monitor))
-  old_shell_name = os.listdir(settled_monitor)
-  for i in old_shell_name:
-    if shell_name in i:
-      os.chdir(settled_monitor)
-      os.remove(i)
-  logging.info("定点监控删除")
+  report_to_pyserver = "http://" + proxy_ip + ":9995" + "/agent_del_msg/"  # 新增完成后反馈给python server是否执行成功
+  try:
+    with open("/home/opvis/utils/agent.lock", "r") as fd:
+      proxy_ip = fd.readline().split(":")[0]
+    get_data_url = "http://" + proxy_ip + ":9995" + "/fixed_point_data/"  # 调用接口获取shell脚本内容
+    id = dic["id"]
+    shell_name = id
+    cron_del_cmd = "sed -i '/{0}/d' {1}".format(shell_name, crontab_settled_monitor)
+    os.system(cron_del_cmd)
+    os.system("crontab {0}".format(crontab_settled_monitor))
+    old_shell_name = os.listdir(settled_monitor)
+    for i in old_shell_name:
+      if shell_name in i:
+        os.chdir(settled_monitor)
+        os.remove(i)
+    logging.info("定点监控删除")
+    report_data = {}
+    report_data["id"] = id
+    report_data["msg"] = "ok"
+    report_data["status"] = 2
+    data = urllib.urlencode(report_data)
+    req = urllib2.Request(url=report_to_pyserver, data=data)
+    res = urllib2.urlopen(req)
+  except Exception as e:
+    report_data = {}
+    report_data["id"] = id
+    report_data["msg"] = "no"
+    report_data["status"] = 2
+    data = urllib.urlencode(report_data)
+    req = urllib2.Request(url=report_to_pyserver, data=data)
+    res = urllib2.urlopen(req)
+
 
 
 # 定点监控修改
 def settled_mon_edit(dic):
-  with open("/home/opvis/utils/agent.lock", "r") as fd:
-    proxy_ip = fd.readline().split(":")[0]
-  upload_result_url = "http://" + proxy_ip + ":9995" + "/fixed_point_result/"  # 返回结果给transfer
-  get_data_url = "http://" + proxy_ip + ":9995" + "/fixed_point_data/" # 调用接口获取shell脚本内容
-  id = dic["id"]
-  get_debug_data = {}
-  get_debug_data["id"] = id
-  data = urllib.urlencode(get_debug_data)
-  req = urllib2.Request(url=get_data_url, data=data)
-  res = urllib2.urlopen(req)
-  get_data = res.read()
-  if not get_data:
-    logging.info("数据库里面没有这条数据")
-  elif get_data == "1":
-    logging.info("python server error.")
-  else:
-    logging.info("get data from debug_info: " + str(get_data))
-    debug_data = json.loads(get_data)
-    shell_cmd = debug_data["data"]
-    execute_cycle = debug_data["execute_cycle"]
-    unit = debug_data["unit"]
-    limit_time = debug_data["limit_time"]  # 定点监控超时时间
-    limit_time = str(limit_time)
-    if limit_time == "":
-      limit_time = "10"
-    #collection_name = debug_data["collection_name"]
-    shell_path = settled_monitor + id
-    shell_name = id
-    # shell_path =  "/home/opvis/utils/plugin/shell_scripts/collection_name##id"
-    # 修改shell脚本内容的话，这里我就直接覆盖之前的
-
-    # 如果时间cycle或者shell脚本名字有改变，那么要删除之前的定时任务
-    # cmd1 = "grep {0} {1}".format(id,crontab_settled_monitor) + "|awk '{print $1}'|awk -F '/' '{print $2}'"
-    # (status, old_execute_cycle) = commands.getstatusoutput(cmd1)
-    # cmd2 = "grep '{0}' {1}".format(id,crontab_settled_monitor) + "|awk -F ' ' '{print $NF}'"
-    # (status, old_shell_name) = commands.getstatusoutput(cmd2)
-    # logging.info("old_shell_name: " + str(old_shell_name))
-    # old_shell_name = old_shell_name.replace("'", "")
-    # old_shell_name_path = settled_monitor + old_shell_name
-    # os.remove(old_shell_name_path)
-    os.remove(shell_path)
-    with open(shell_path,"w") as fd:
-      fd.write(shell_cmd)
-    # if execute_cycle != old_execute_cycle or shell_name != old_shell_name:
-    cron_del_cmd = "sed -i '/{0}/d' {1}".format(id, crontab_settled_monitor)
-    os.system(cron_del_cmd)
-    if unit == 0:
-      cron_cmd = "*" + "/" + str(execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
-    elif unit == 1:
-      cron_cmd = "* *" + "/" + str(execute_cycle) + " * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
-    elif unit == 2:
-      cron_cmd = "* * *" + "/" + str(execute_cycle) + " * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
-    logging.info("定点监控修改定时任务：" + str(cron_cmd))
-    with open(crontab_settled_monitor, "a") as fd:
-      fd.write(cron_cmd)
-      fd.write("\n")
-    os.system("crontab {0}".format(crontab_settled_monitor))
+  try:
+    with open("/home/opvis/utils/agent.lock", "r") as fd:
+      proxy_ip = fd.readline().split(":")[0]
+    upload_result_url = "http://" + proxy_ip + ":9995" + "/fixed_point_result/"  # 返回结果给transfer
+    get_data_url = "http://" + proxy_ip + ":9995" + "/fixed_point_data/"  # 调用接口获取shell脚本内容
+    report_to_pyserver = "http://" + proxy_ip + ":9995" + "/agent_del_msg/"  # 新增完成后反馈给python server是否执行成功
+    id = dic["id"]
+    get_debug_data = {}
+    get_debug_data["id"] = id
+    data = urllib.urlencode(get_debug_data)
+    req = urllib2.Request(url=get_data_url, data=data)
+    res = urllib2.urlopen(req)
+    get_data = res.read()
+    if not get_data:
+      logging.info("数据库里面没有这条数据")
+    elif get_data == "1":
+      logging.info("python server error.")
+    else:
+      logging.info("get data from debug_info: " + str(get_data))
+      debug_data = json.loads(get_data)
+      shell_cmd = debug_data["data"]
+      execute_cycle = debug_data["execute_cycle"]
+      unit = debug_data["unit"]
+      limit_time = debug_data["limit_time"]  # 定点监控超时时间
+      limit_time = str(limit_time)
+      if limit_time == "":
+        limit_time = "10"
+      shell_path = settled_monitor + id
+      shell_name = id
+      os.remove(shell_path)
+      with open(shell_path, "w") as fd:
+        fd.write(shell_cmd)
+      cron_del_cmd = "sed -i '/{0}/d' {1}".format(id, crontab_settled_monitor)
+      os.system(cron_del_cmd)
+      if unit == 0:
+        cron_cmd = "*" + "/" + str(
+          execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+      elif unit == 1:
+        cron_cmd = "* *" + "/" + str(
+          execute_cycle) + " * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+      elif unit == 2:
+        cron_cmd = "* * *" + "/" + str(
+          execute_cycle) + " * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+      logging.info("定点监控修改定时任务：" + str(cron_cmd))
+      with open(crontab_settled_monitor, "a") as fd:
+        fd.write(cron_cmd)
+        fd.write("\n")
+      os.system("crontab {0}".format(crontab_settled_monitor))
+      report_data = {}
+      report_data["id"] = id
+      report_data["msg"] = "ok"
+      report_data["status"] = 3
+      data = urllib.urlencode(report_data)
+      req = urllib2.Request(url=report_to_pyserver, data=data)
+      res = urllib2.urlopen(req)
+  except Exception as e:
+    report_data = {}
+    report_data["id"] = id
+    report_data["msg"] = "no"
+    report_data["status"] = 3
+    data = urllib.urlencode(report_data)
+    req = urllib2.Request(url=report_to_pyserver, data=data)
+    res = urllib2.urlopen(req)
 
 def do_data(data,addr,dic,data2):
   if "pstatus" in dic:
