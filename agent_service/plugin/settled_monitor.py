@@ -46,11 +46,11 @@ if os.path.exists(shell_path):
   while True:
     time.sleep(0.1)
     if end_time <= datetime.datetime.now():
-      overtime_alarm = 2
+      code = 2
       sub.kill()
       break  # 为了防止结果和错误都为空，如ls一个空目录
     else:
-      overtime_alarm = 1
+      code = 1
     (stdoutput, erroutput) = sub.communicate()
     if erroutput:
       result = erroutput
@@ -62,8 +62,12 @@ if os.path.exists(shell_path):
       break
   # logging.info("shell脚本定时执行结果：" + str(result))
   end_execute_time = time.time()
+  if result == "":
+    code = 0
   data = {}
   data["id"] = id
+  data["code"] = code
+  data["proxy_ip"] = proxy_ip
   data["monitor_time"] = str(start_execute_time)
   data["result"] = result
   data = urllib.urlencode(data)
