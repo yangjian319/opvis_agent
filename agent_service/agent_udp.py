@@ -634,7 +634,7 @@ def online_debug(dic):
   req = urllib2.Request(url=get_data_url, data=data)
   res = urllib2.urlopen(req)
   get_data = res.read()
-  start_time = time.time()
+  start_time = round(time.time(),3)
   if not get_data:
     logging.info("数据库里面没有这条数据")
   elif get_data == "1":
@@ -670,7 +670,7 @@ def online_debug(dic):
       if sub.poll() is not None:
         break
     data = {}
-    ends_time = time.time()
+    ends_time = round(time.time(),3)
     data["start_time"] = str(start_time)
     data["end_time"] = str(ends_time)
     data["id"] = dic["id"]
