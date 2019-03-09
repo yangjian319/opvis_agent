@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
-# @Time  : 2019/1/8 15:36
-# @Author: yangjian
+# @Time  : 2009/1/8 15:36
+# @Author: YYYY-MM
 # @File  : settled_monitor.py
 # 定点监控插件
 
@@ -32,10 +32,8 @@ limit_time = sys.argv[2]
 shell_path = "/home/opvis/utils/plugin/shell_scripts/" + shell_name
 with open("/home/opvis/utils/agent.lock", "r") as fd:
   proxy_ip = fd.readline().split(":")[0]
-settled_post_url = "http://" + proxy_ip + ":9995" + "/fixed_point_result/"  # 返回结果给transfer
-#id = shell_name.split("##")[1]
+settled_post_url = "http://" + proxy_ip + ":9995" + "/fixed_point_result/"
 id = shell_name
-# 添加一个判断，判断shell_path是否存在，如果不存在就记录日志。
 if os.path.exists(shell_path):
   with open(shell_path, "r") as fd:
     shell_cmd = fd.read()
@@ -60,7 +58,6 @@ if os.path.exists(shell_path):
       break
     if sub.poll() is not None:
       break
-  # logging.info("shell脚本定时执行结果：" + str(result))
   end_execute_time = time.time()
   if result == "":
     code = 0
