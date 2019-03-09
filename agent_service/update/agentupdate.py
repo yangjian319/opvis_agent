@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
-# @Time  : 2018/7/5 10:26
-# @Author: yangjian
+# @Time  : 2008/7/5 10:26
+# @Author: YYYY-MM
 # @File  : agentupdate.py
 
 import os
