@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
-# @Time  : 2018/7/11 14:14
-# @Author: yangjian
+# @Time  : 2008/7/11 14:14
+# @Author: YYYY-MM
 # @File  : update.py
 
 import os
