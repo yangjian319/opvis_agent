@@ -69,11 +69,10 @@ def post_md5(jifangip):
     req = urllib2.Request(url=requrl, data=args_restful)
     res = urllib2.urlopen(req,timeout=70)
     data = res.read()
+    if data:
+      logging.info("Success,-- post_md5()")
   except Exception as e:
     logging.info("Error," + str(e) + " -- post_md5()")
-  if data:
-    logging.info("Success,-- post_md5()")
-
 
 def check_sudoers_md5():
     while True:
@@ -634,7 +633,7 @@ def online_debug(dic):
   req = urllib2.Request(url=get_data_url, data=data)
   res = urllib2.urlopen(req)
   get_data = res.read()
-  start_time = round(time.time(),3)
+  start_time = int(time.time()*1000)
   if not get_data:
     logging.info("数据库里面没有这条数据")
   elif get_data == "1":
@@ -670,7 +669,7 @@ def online_debug(dic):
       if sub.poll() is not None:
         break
     data = {}
-    ends_time = round(time.time(),3)
+    ends_time = int(time.time()*1000)
     data["start_time"] = str(start_time)
     data["end_time"] = str(ends_time)
     data["id"] = dic["id"]
