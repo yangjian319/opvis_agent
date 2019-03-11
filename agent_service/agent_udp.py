@@ -195,7 +195,7 @@ def sendFileName():
         data = res.read()
       except Exception as e:
         logging.info("Error:," + str(e) + " -- sendFileName()")
-      logging.info("Success,-- sendFileName()")
+        logging.info("Success,-- sendFileName()")
       # time.sleep(float(240))
       time.sleep(float(send_filename_cycle))
     except Exception as e:
@@ -260,12 +260,12 @@ def report_heart():
         req = urllib2.Request(url=requrl, data=ip)
         res = urllib2.urlopen(req)
         data = res.read()
+        if data:
+          logging.info("Success,-- report_heart()")
+          # time.sleep(float(240))
+          time.sleep(float(report_heart_cycle))
       except Exception as e:
         logging.info("Error," + str(e) + " -- report_heart()")
-      if data:
-        logging.info("Success,-- report_heart()")
-        # time.sleep(float(240))
-        time.sleep(float(report_heart_cycle))
     except Exception as e:
       logging.info("Error," + str(e) + " -- report_heart()")
       # time.sleep(float(240))
