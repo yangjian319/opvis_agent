@@ -41,7 +41,10 @@ if os.path.exists(shell_path):
   # 脚本执行开始时间
   start_execute_time = int(time.time()*1000)
   sub = subprocess.Popen(shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  code = 1
   while True:
+    if sub.poll() is not None:
+      break
     time.sleep(0.1)
     if end_time <= datetime.datetime.now():
       code = 2
@@ -49,17 +52,14 @@ if os.path.exists(shell_path):
       break  # 为了防止结果和错误都为空，如ls一个空目录
     else:
       code = 1
-    (stdoutput, erroutput) = sub.communicate()
-    if erroutput:
-      result = erroutput
-    else:
-      result = stdoutput
-    if result:
-      break
-    if sub.poll() is not None:
-      break
-  if result == "":
+  (stdoutput, erroutput) = sub.communicate()
+  if erroutput:
+    result = erroutput
+  else:
+    result = stdoutput
+  if code == 1 and result == "":
     code = 0
+  logging.info("code: " + str(code))
   data = {}
   data["id"] = id
   data["code"] = code
