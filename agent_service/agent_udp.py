@@ -26,7 +26,7 @@ from logging.handlers import TimedRotatingFileHandler
 
 reload(sys)
 sys.setdefaultencoding('utf8')
-VERSION = 4
+VERSION = 2
 # log
 if not os.path.exists("/home/opvis/utils/log"):
   os.makedirs("/home/opvis/utils/log")
@@ -650,24 +650,24 @@ def online_debug(dic):
       end_time = datetime.datetime.now() + datetime.timedelta(seconds=10)
     sub = subprocess.Popen(shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # logging.info("sub的进程id：" + str(sub.pid))
+    code = 1
     result = ""
     while True:
+      if sub.poll() is not None:
+        break
       time.sleep(0.1)
       if end_time <= datetime.datetime.now():
         overtime_alarm = 2
         sub.kill()
-        break   # 为了防止结果和错误都为空，如ls一个空目录
+        break  # 为了防止结果和错误都为空，如ls一个空目录
       else:
         overtime_alarm = 1
-      (stdoutput, erroutput) = sub.communicate()
-      if erroutput:
-        result = erroutput
-      else:
-        result = stdoutput
-      if result:
-        break
-      if sub.poll() is not None:
-        break
+    (stdoutput, erroutput) = sub.communicate()
+    if erroutput:
+      result = erroutput
+    else:
+      result = stdoutput
+    logging.info("code: " + str(code))
     data = {}
     ends_time = int(time.time()*1000)
     data["start_time"] = str(start_time)
