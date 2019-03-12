@@ -295,8 +295,8 @@ def call_plugin(status,tmp_url,dic,plugin_name,data2):
       logging.info("Plugin is not installed: topologic.")
   else:
     # pack
-    # cmd = "/home/opvis/utils/plugin/update" + " " + data2
-    cmd = "python /home/opvis/utils/plugin/update.py" + " " + data2
+    cmd = "/home/opvis/utils/plugin/update" + " " + data2
+    # cmd = "python /home/opvis/utils/plugin/update.py" + " " + data2
     os.system(cmd)
 
 def getAllprocess():
@@ -965,8 +965,8 @@ def main():
   udpsocket.close()
   try:
     # pack
-    #cmd = "/home/opvis/opvis_agent/agent_service/update/agentupdate" + " " + data2
-    cmd = "python /home/opvis/opvis_agent/agent_service/update/agentupdate.py" + " " + data2
+    cmd = "/home/opvis/opvis_agent/agent_service/update/agentupdate" + " " + data2
+    # cmd = "python /home/opvis/opvis_agent/agent_service/update/agentupdate.py" + " " + data2
     ret = os.system(cmd)
   except Exception as e:
     logging.info("Upgrade agent error: " + str(e))
@@ -1000,9 +1000,9 @@ if __name__=='__main__':
     udpsocket.bind(address)
   except Exception as e:
     logging.info("Udp connection error: " + str(e))
+  iplist = ["172.30.130.126:18382"]
   #iplist = ["172.30.130.137:18382", "172.30.130.126:18382", "10.124.5.163:18382", "10.144.2.248:18382",
   #          "10.123.30.177:18382", "172.30.194.121:18382", "172.16.5.20:18382", "10.181.1.0:18382"]
-  iplist = ["172.30.130.126:18382"]
 
   for ip in iplist:
     try:
