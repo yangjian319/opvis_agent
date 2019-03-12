@@ -39,7 +39,7 @@ if os.path.exists(shell_path):
     shell_cmd = fd.read()
   end_time = datetime.datetime.now() + datetime.timedelta(seconds=int(limit_time))
   # 脚本执行开始时间
-  start_execute_time = round(time.time(),3)
+  start_execute_time = int(time.time()*1000)
   sub = subprocess.Popen(shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   while True:
     time.sleep(0.1)
@@ -58,7 +58,6 @@ if os.path.exists(shell_path):
       break
     if sub.poll() is not None:
       break
-  end_execute_time = time.time()
   if result == "":
     code = 0
   data = {}
