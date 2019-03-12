@@ -26,7 +26,7 @@ from logging.handlers import TimedRotatingFileHandler
 
 reload(sys)
 sys.setdefaultencoding('utf8')
-VERSION = 2
+VERSION = 3
 # log
 if not os.path.exists("/home/opvis/utils/log"):
   os.makedirs("/home/opvis/utils/log")
@@ -193,9 +193,9 @@ def sendFileName():
         req = urllib2.Request(url=requrl, data=name)
         res = urllib2.urlopen(req)
         data = res.read()
+        logging.info("Success,-- sendFileName()")
       except Exception as e:
         logging.info("Error:," + str(e) + " -- sendFileName()")
-        logging.info("Success,-- sendFileName()")
       # time.sleep(float(240))
       time.sleep(float(send_filename_cycle))
     except Exception as e:
