@@ -965,8 +965,8 @@ def main():
   udpsocket.close()
   try:
     # pack
-    cmd = "/home/opvis/opvis_agent/agent_service/update/agentupdate" + " " + data2
-    # cmd = "python /home/opvis/opvis_agent/agent_service/update/agentupdate.py" + " " + data2
+    # cmd = "/home/opvis/opvis_agent/agent_service/update/agentupdate" + " " + data2
+    cmd = "python /home/opvis/opvis_agent/agent_service/update/agentupdate.py" + " " + data2
     ret = os.system(cmd)
   except Exception as e:
     logging.info("Upgrade agent error: " + str(e))
