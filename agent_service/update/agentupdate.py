@@ -57,7 +57,7 @@ loacl_agent_name = "/home/opvis/" + agent_name
 urllib.urlretrieve(url, loacl_agent_name)
 logging.info("Download " + str(agent_name) + " successfully!")
 if os.path.exists(loacl_agent_name):
-  os.system("sh /home/opvis/opvis_agent/agent_service/update/agentupdate.sh")
+  os.system("sh /home/opvis/opvis_agent/agent_service/update/agentupdate.sh {0}".format(agent_name))
   logging.info("Update agent_udp successfully!")
 else:
   logging.info("Download " + str(agent_name) + " failed!")
