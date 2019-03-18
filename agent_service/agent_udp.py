@@ -26,7 +26,7 @@ from logging.handlers import TimedRotatingFileHandler
 
 reload(sys)
 sys.setdefaultencoding('utf8')
-VERSION = 3
+VERSION = 1
 # log
 if not os.path.exists("/home/opvis/utils/log"):
   os.makedirs("/home/opvis/utils/log")
@@ -785,8 +785,6 @@ def settled_mon_delete(dic):
     req = urllib2.Request(url=report_to_pyserver, data=data)
     res = urllib2.urlopen(req)
 
-
-
 # 定点监控修改
 def settled_mon_edit(dic):
   try:
@@ -1001,9 +999,9 @@ if __name__=='__main__':
     udpsocket.bind(address)
   except Exception as e:
     logging.info("Udp connection error: " + str(e))
-  iplist = ["10.181.45.6:18382"]
-  # iplist = ["172.30.130.137:18382", "172.30.130.126:18382", "10.124.5.163:18382", "10.144.2.248:18382",
-  #           "10.123.30.177:18382", "172.30.194.121:18382", "172.16.5.20:18382", "10.181.1.0:18382"]
+  #iplist = ["10.181.45.6:18382"]
+  iplist = ["172.30.130.137:18382", "172.30.130.126:18382", "10.124.5.163:18382", "10.144.2.248:18382",
+            "10.123.30.177:18382", "172.30.194.121:18382", "172.16.5.20:18382", "10.181.1.0:18382"]
 
   for ip in iplist:
     try:
