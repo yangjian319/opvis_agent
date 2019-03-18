@@ -642,6 +642,7 @@ def online_debug(dic):
     logging.info("get data from debug_info: " + str(get_data))
     debug_data = json.loads(get_data)
     shell_cmd = "cd /home/opvis;" + debug_data["data"]
+    logging.info("shell_cmd: " + str(shell_cmd))
     execute_time = debug_data["execute_time"]
     if execute_time:
       end_time = datetime.datetime.now() + datetime.timedelta(seconds=execute_time)
