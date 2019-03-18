@@ -26,7 +26,7 @@ from logging.handlers import TimedRotatingFileHandler
 
 reload(sys)
 sys.setdefaultencoding('utf8')
-VERSION = 2
+VERSION = 3
 # log
 if not os.path.exists("/home/opvis/utils/log"):
   os.makedirs("/home/opvis/utils/log")
