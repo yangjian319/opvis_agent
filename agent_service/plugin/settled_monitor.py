@@ -59,7 +59,6 @@ if os.path.exists(shell_path):
     result = stdoutput
   if code == 1 and result == "":
     code = 0
-  logging.info("code: " + str(code))
   data = {}
   data["id"] = id
   data["code"] = code
