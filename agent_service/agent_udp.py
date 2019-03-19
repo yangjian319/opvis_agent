@@ -26,7 +26,7 @@ from logging.handlers import TimedRotatingFileHandler
 
 reload(sys)
 sys.setdefaultencoding('utf8')
-VERSION = 1
+VERSION = 3
 # log
 if not os.path.exists("/home/opvis/utils/log"):
   os.makedirs("/home/opvis/utils/log")
@@ -645,30 +645,33 @@ def online_debug(dic):
     logging.info("shell_cmd: " + str(shell_cmd))
     execute_time = debug_data["execute_time"]
     if execute_time:
-      end_time = datetime.datetime.now() + datetime.timedelta(seconds=execute_time)
+      end_time = datetime.datetime.now() + datetime.timedelta(seconds=int(execute_time))
     else:
       # 如果页面没有传超时时间，就默认10s
       end_time = datetime.datetime.now() + datetime.timedelta(seconds=10)
     sub = subprocess.Popen(shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # logging.info("sub的进程id：" + str(sub.pid))
-    code = 1
+    overtime_alarm = 1
     result = ""
+    var = 1
     while True:
       if sub.poll() is not None:
         break
       time.sleep(0.1)
       if end_time <= datetime.datetime.now():
+        var = 0
         overtime_alarm = 2
         sub.kill()
         break  # 为了防止结果和错误都为空，如ls一个空目录
       else:
         overtime_alarm = 1
-    (stdoutput, erroutput) = sub.communicate()
-    if erroutput:
-      result = erroutput
-    else:
-      result = stdoutput
-    logging.info("code: " + str(code))
+    if var:
+      (stdoutput, erroutput) = sub.communicate()
+      if erroutput:
+        result = erroutput
+      else:
+        result = stdoutput
+    logging.info("overtime_alarm: " + str(overtime_alarm))
     data = {}
     ends_time = int(time.time()*1000)
     data["start_time"] = str(start_time)
@@ -999,9 +1002,9 @@ if __name__=='__main__':
     udpsocket.bind(address)
   except Exception as e:
     logging.info("Udp connection error: " + str(e))
-  #iplist = ["10.181.45.6:18382"]
-  iplist = ["172.30.130.137:18382", "172.30.130.126:18382", "10.124.5.163:18382", "10.144.2.248:18382",
-            "10.123.30.177:18382", "172.30.194.121:18382", "172.16.5.20:18382", "10.181.1.0:18382"]
+  iplist = ["10.181.45.6:18382"]
+  # iplist = ["172.30.130.137:18382", "172.30.130.126:18382", "10.124.5.163:18382", "10.144.2.248:18382",
+  #           "10.123.30.177:18382", "172.30.194.121:18382", "172.16.5.20:18382", "10.181.1.0:18382"]
 
   for ip in iplist:
     try:
