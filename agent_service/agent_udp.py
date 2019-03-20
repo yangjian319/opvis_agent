@@ -196,8 +196,8 @@ def sendFileName():
         logging.info("Success,-- sendFileName()")
       except Exception as e:
         logging.info("Error:," + str(e) + " -- sendFileName()")
-      # time.sleep(float(240))
-      time.sleep(float(send_filename_cycle))
+        # time.sleep(float(240))
+        time.sleep(float(send_filename_cycle))
     except Exception as e:
       logging.info("Error," + str(e) + " -- sendFileName()")
       # time.sleep(float(240))
@@ -266,6 +266,7 @@ def report_heart():
           time.sleep(float(report_heart_cycle))
       except Exception as e:
         logging.info("Error," + str(e) + " -- report_heart()")
+        time.sleep(float(report_heart_cycle))
     except Exception as e:
       logging.info("Error," + str(e) + " -- report_heart()")
       # time.sleep(float(240))
@@ -650,7 +651,6 @@ def online_debug(dic):
       # 如果页面没有传超时时间，就默认10s
       end_time = datetime.datetime.now() + datetime.timedelta(seconds=10)
     sub = subprocess.Popen(shell_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    # logging.info("sub的进程id：" + str(sub.pid))
     overtime_alarm = 1
     result = ""
     var = 1
@@ -690,7 +690,6 @@ def settled_mon_add(dic):
   try:
     with open("/home/opvis/utils/agent.lock", "r") as fd:
       proxy_ip = fd.readline().split(":")[0]
-    upload_result_url = "http://" + proxy_ip + ":9995" + "/fixed_point_result/"  # 返回结果给transfer
     get_data_url = "http://" + proxy_ip + ":9995" + "/fixed_point_data/"  # 调用接口获取shell脚本内容
     report_to_pyserver = "http://" + proxy_ip + ":9995" + "/agent_del_msg/"  # 新增完成后反馈给python server是否执行成功
     id = dic["id"]
@@ -760,7 +759,6 @@ def settled_mon_delete(dic):
   try:
     with open("/home/opvis/utils/agent.lock", "r") as fd:
       proxy_ip = fd.readline().split(":")[0]
-    get_data_url = "http://" + proxy_ip + ":9995" + "/fixed_point_data/"  # 调用接口获取shell脚本内容
     id = dic["id"]
     shell_name = id
     cron_del_cmd = "sed -i '/{0}/d' {1}".format(shell_name, crontab_settled_monitor)
@@ -793,7 +791,6 @@ def settled_mon_edit(dic):
   try:
     with open("/home/opvis/utils/agent.lock", "r") as fd:
       proxy_ip = fd.readline().split(":")[0]
-    upload_result_url = "http://" + proxy_ip + ":9995" + "/fixed_point_result/"  # 返回结果给transfer
     get_data_url = "http://" + proxy_ip + ":9995" + "/fixed_point_data/"  # 调用接口获取shell脚本内容
     report_to_pyserver = "http://" + proxy_ip + ":9995" + "/agent_del_msg/"  # 新增完成后反馈给python server是否执行成功
     id = dic["id"]
@@ -1024,12 +1021,10 @@ if __name__=='__main__':
   if pid==0:
     pid2 =os.fork()
     if pid2 == 0:
-      logging.info("grandsun process: " + str(os.getpid()))
       if os.path.exists(pid_of_process):
         os.remove(pid_of_process)
       get_Old_cycle()
     else:
-      logging.info("子进程: " + str(os.getpid()))
       os._exit(0)
   else:
     os.wait()
