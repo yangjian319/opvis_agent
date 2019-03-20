@@ -193,7 +193,9 @@ def sendFileName():
         req = urllib2.Request(url=requrl, data=name)
         res = urllib2.urlopen(req)
         data = res.read()
-        logging.info("Success,-- sendFileName()")
+        if data:
+          logging.info("Success,-- sendFileName()")
+          time.sleep(float(send_filename_cycle))
       except Exception as e:
         logging.info("Error:," + str(e) + " -- sendFileName()")
         # time.sleep(float(240))
