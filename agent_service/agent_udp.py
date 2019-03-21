@@ -16,6 +16,7 @@ import socket
 import random
 import urllib
 import urllib2
+import filecmp
 import logging
 import commands
 import datetime
@@ -230,6 +231,16 @@ def check_version():
       logging.info("Upgrade agent error: " + str(e))
       # time.sleep(float(240))
       time.sleep(float(check_version_cycle))
+
+def check_cron():
+  while True:
+    crontab_temp = "/home/opvis/utils/cron/crontab_temp"
+    if os.path.exists(crontab_temp):
+      os.system("crontab -l > /home/opvis/utils/cron/crontab_running")
+      compare_result = filecmp.cmp(r"/home/opvis/utils/cron/crontab_temp", r"/home/opvis/utils/cron/crontab_running")
+      if compare_result == False:
+        os.system("crontab {0}".format(crontab_temp))
+    time.sleep(30)
 
 # report heart
 def report_heart():
@@ -932,6 +943,13 @@ def main():
     checkversion.start()
   except Exception as e:
     logging.info("Check version, thread error: " + str(e))
+
+  try:
+    checkcron = threading.Thread(target=check_cron,args=())
+    checkcron.daemon = True
+    checkcron.start()
+  except Exception as e:
+    logging.info("Check crontab, thread error: " + str(e))
 
   # Get data from proxy
   while True:
