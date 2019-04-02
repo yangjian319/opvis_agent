@@ -314,7 +314,6 @@ def call_plugin(status,tmp_url,dic,plugin_name,data2):
     os.system(cmd)
 
 def getAllprocess():
-  logging.info("进入到getAllprocess()...")
   try:
     with open("/home/opvis/utils/agent.lock", "r") as fd:
       proxy_ip = fd.readline().split(":")[0]
@@ -720,6 +719,7 @@ def settled_mon_add(dic):
     else:
       logging.info("get data settled_mon_add: " + str(get_data))
       debug_data = json.loads(get_data)
+      biz_ip = debug_data["biz_ip"]
       shell_cmd = debug_data["data"]
       execute_cycle = debug_data["execute_cycle"]
       limit_time = debug_data["limit_time"]  # 定点监控超时时间
@@ -734,13 +734,13 @@ def settled_mon_add(dic):
       # 接下来要判断unit是分钟还是小时还是天，并进行转换
       if unit == 0:
         cron_cmd = "*" + "/" + str(
-          execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+          execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time + " " + biz_ip
       elif unit == 1:
         cron_cmd = "* *" + "/" + str(
-          execute_cycle) + " * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+          execute_cycle) + " * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time + " " + biz_ip
       elif unit == 2:
         cron_cmd = "* * *" + "/" + str(
-          execute_cycle) + " * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+          execute_cycle) + " * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time + " " + biz_ip
       # shell_path =  "/home/opvis/utils/plugin/shell_scripts/id"
       logging.info("定点监控定时任务：" + str(cron_cmd))
       with open(crontab_settled_monitor, "a") as fd:
@@ -820,6 +820,7 @@ def settled_mon_edit(dic):
     else:
       logging.info("get data from debug_info: " + str(get_data))
       debug_data = json.loads(get_data)
+      biz_ip = debug_data["biz_ip"]
       shell_cmd = debug_data["data"]
       execute_cycle = debug_data["execute_cycle"]
       unit = debug_data["unit"]
@@ -836,13 +837,13 @@ def settled_mon_edit(dic):
       os.system(cron_del_cmd)
       if unit == 0:
         cron_cmd = "*" + "/" + str(
-          execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+          execute_cycle) + " * * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time + " " + biz_ip
       elif unit == 1:
         cron_cmd = "* *" + "/" + str(
-          execute_cycle) + " * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+          execute_cycle) + " * * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time + " " + biz_ip
       elif unit == 2:
         cron_cmd = "* * *" + "/" + str(
-          execute_cycle) + " * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time
+          execute_cycle) + " * * python /home/opvis/utils/plugin/settled_monitor.py " + "'" + shell_name + "'" + " " + limit_time + " " + biz_ip
       logging.info("定点监控修改定时任务：" + str(cron_cmd))
       with open(crontab_settled_monitor, "a") as fd:
         fd.write(cron_cmd)
