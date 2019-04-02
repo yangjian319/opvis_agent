@@ -29,6 +29,7 @@ logger.addHandler(fh)
 
 shell_name = sys.argv[1]
 limit_time = sys.argv[2]
+biz_ip = sys.argv[3]
 shell_path = "/home/opvis/utils/plugin/shell_scripts/" + shell_name
 with open("/home/opvis/utils/agent.lock", "r") as fd:
   proxy_ip = fd.readline().split(":")[0]
@@ -62,6 +63,7 @@ if os.path.exists(shell_path):
   data = {}
   data["id"] = id
   data["code"] = code
+  data["biz_ip"] = biz_ip
   data["proxy_ip"] = proxy_ip
   data["monitor_time"] = str(start_execute_time)
   data["result"] = result
